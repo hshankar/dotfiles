@@ -1,0 +1,24 @@
+- tmux config
+- zsh config
+- git aliases
+- regular aliases (grep etc.)
+- oh-my-zsh download
+- oh-my-zsh theme
+
+Downloads
+- git
+- git-extras
+- git credential manager
+- tmux
+- ripgrep
+- GNU sed, awk, cut, tac, cat, zcat, zgrep (coreutils?)
+- jq
+- java
+
+GUI downloads
+- TextMate
+- Chrome
+- Firefox
+- Dropbox
+- VSCode
+- VSCode extensions
