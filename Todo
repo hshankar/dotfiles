@@ -1,10 +1,3 @@
-- tmux config
-- zsh config
-- git aliases
-- regular aliases (grep etc.)
-- oh-my-zsh download
-- oh-my-zsh theme
-
 Downloads
 - brew
 - git
@@ -12,9 +5,17 @@ Downloads
 - git credential manager
 - tmux
 - ripgrep
-- GNU sed, awk, cut, tac, cat, zcat, zgrep (coreutils?)
+- GNU sed, awk, find, cut, tac, cat, zcat, zgrep (coreutils?)
 - jq
-- java
+
+Config files
+- tmux config
+- zsh config
+- git aliases
+- regular aliases (grep etc.)
+- oh-my-zsh download
+- oh-my-zsh theme
+- vimrc
 
 GUI downloads
 - TextMate
