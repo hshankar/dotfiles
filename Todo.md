@@ -13,7 +13,7 @@
     - [x] zsh config
     - [x] oh-my-zsh overrides
     - [x] git aliases
-    - [] vimrc
+    - [x] vimrc
 
 - [] GUI downloads
     - [] TextMate

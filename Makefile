@@ -37,12 +37,15 @@ link:
 	stow -t $(HOME) runcom
 	stow -t $(XDG_CONFIG_HOME) config
 	stow -t $(HOME)/.oh-my-zsh/custom oh-my-zsh
+	stow -t $(HOME)/.vim vim
 	mkdir -p $(HOME)/.local/runtime
 	chmod 700 $(HOME)/.local/runtime
 
 unlink:
 	stow --delete -t $(HOME) runcom
 	stow --delete -t $(XDG_CONFIG_HOME) config
+	stow --delete -t $(HOME)/.oh-my-zsh/custom oh-my-zsh
+	stow --delete -t $(HOME)/.vim vim
 	for FILE in $$(\ls -A runcom); do if [ -f $(HOME)/$$FILE.bak ]; then \
 		mv -v $(HOME)/$$FILE.bak $(HOME)/$${FILE%%.bak}; fi; done
 
