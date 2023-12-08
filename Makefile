@@ -22,6 +22,7 @@ core-linux: oh-my-zsh
 	apt-get update
 	apt-get upgrade -y
 	apt-get dist-upgrade -f
+	apt-get -y install stow
 
 sudo:
 	sudo -v
@@ -29,7 +30,7 @@ sudo:
 
 packages: brew-packages cask-apps
 
-link: stow-$(OS)
+link:
 	for FILE in $$(\ls -A runcom); do if [ -f $(HOME)/$$FILE -a ! -h $(HOME)/$$FILE ]; then \
 		mv -v $(HOME)/$$FILE{,.bak}; fi; done
 	mkdir -p $(XDG_CONFIG_HOME)
@@ -38,7 +39,7 @@ link: stow-$(OS)
 	mkdir -p $(HOME)/.local/runtime
 	chmod 700 $(HOME)/.local/runtime
 
-unlink: stow-$(OS)
+unlink:
 	stow --delete -t $(HOME) runcom
 	stow --delete -t $(XDG_CONFIG_HOME) config
 	for FILE in $$(\ls -A runcom); do if [ -f $(HOME)/$$FILE.bak ]; then \
@@ -48,14 +49,10 @@ brew:
 	is-executable brew || curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install.sh | zsh
 
 oh-my-zsh:
-	ifeq ($(wildcard $(HOME)/.oh-my-zsh),)
-		curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh | zsh
-	endif
+	test -d $(HOME)/.oh-my-zsh || curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh | zsh
 
 brew-packages: brew
 	brew bundle --file=$(DOTFILES_DIR)/install/Brewfile || true
 
 cask-apps: brew
 	brew bundle --file=$(DOTFILES_DIR)/install/Caskfile || true
-	
-

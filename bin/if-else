@@ -1,4 +1,4 @@
-#!/bin/env zsh
+#!/bin/zsh
 
 if eval "$1" > /dev/null 2>&1; then
   echo -n "$2"

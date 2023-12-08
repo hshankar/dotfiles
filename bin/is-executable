@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/bin/zsh
 
 ## This script takes one argument: a command to run. If the command succeeds, it exits with 0; if it fails, it exits with 1.
 
