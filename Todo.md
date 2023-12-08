@@ -10,10 +10,9 @@
 
 - [] Config files
     - [] tmux config
-    - [] zsh config
-    - [] oh-my-zsh overrides
-    - [] git aliases
-    - [] regular aliases (grep etc.)
+    - [x] zsh config
+    - [x] oh-my-zsh overrides
+    - [x] git aliases
     - [] vimrc
 
 - [] GUI downloads
