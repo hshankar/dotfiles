@@ -1,4 +1,5 @@
 Downloads
+- oh-my-zsh
 - brew
 - git
 - git-extras
@@ -11,10 +12,9 @@ Downloads
 Config files
 - tmux config
 - zsh config
+- oh-my-zsh overrides
 - git aliases
 - regular aliases (grep etc.)
-- oh-my-zsh download
-- oh-my-zsh theme
 - vimrc
 
 GUI downloads
