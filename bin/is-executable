@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+
+## This script takes one argument: a command to run. If the command succeeds, it exits with 0; if it fails, it exits with 1.
+
+if type "$1" >/dev/null 2>&1; then
+  exit 0
+else
+  exit 1
+fi

@@ -1,0 +1,25 @@
+- [x] Downloads
+    - [x] oh-my-zsh
+    - [x] brew
+    - [x] git
+    - [x] git-extras
+    - [x] git credential manager
+    - [x] tmux
+    - [x] ripgrep
+    - [x] jq
+
+- [] Config files
+    - [] tmux config
+    - [] zsh config
+    - [] oh-my-zsh overrides
+    - [] git aliases
+    - [] regular aliases (grep etc.)
+    - [] vimrc
+
+- [] GUI downloads
+    - [] TextMate
+    - [] Chrome
+    - [] Firefox
+    - [] Dropbox
+    - [] VSCode
+    - [] VSCode extensions

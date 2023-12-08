@@ -1,0 +1,22 @@
+tap "homebrew/bundle"
+
+# core/dotfiles
+brew "coreutils"
+brew "stow"
+
+# fs/network
+brew "ssh-copy-id"
+brew "wget"
+brew "tmux"
+
+# search/grep/diff
+brew "fd"
+brew "fzf"
+brew "git"
+brew "git-extras"
+brew "git-delta"
+brew "gnu-sed"
+brew "grep"
+brew "jq"
+brew "psgrep"
+brew "ripgrep"
