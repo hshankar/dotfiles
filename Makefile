@@ -12,7 +12,7 @@ export ACCEPT_EULA=Y
 
 all: $(OS)
 
-macos: sudo core-macos packages link
+macos: sudo core-macos packages link duti
 
 linux: core-linux link
 
@@ -60,3 +60,6 @@ brew-packages: brew
 
 cask-apps: brew
 	brew bundle --file=$(DOTFILES_DIR)/install/Caskfile || true
+
+duti:
+	duti -v $(DOTFILES_DIR)/install/duti

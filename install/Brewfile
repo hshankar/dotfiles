@@ -3,11 +3,11 @@ tap "homebrew/bundle"
 # core/dotfiles
 brew "coreutils"
 brew "stow"
+brew "tmux"
 
 # fs/network
 brew "ssh-copy-id"
 brew "wget"
-brew "tmux"
 
 # search/grep/diff
 brew "fd"
@@ -20,3 +20,6 @@ brew "grep"
 brew "jq"
 brew "psgrep"
 brew "ripgrep"
+
+# mac optimizers
+brew "duti"
