@@ -48,7 +48,6 @@ com.microsoft.VSCode .toml editor
 com.microsoft.VSCode .ts editor
 com.microsoft.VSCode .tsv editor
 com.microsoft.VSCode .tsx editor
-com.microsoft.VSCode .txt editor
 com.microsoft.VSCode .vue editor
 com.microsoft.VSCode .yaml editor
 com.microsoft.VSCode .yml editor
@@ -58,6 +57,7 @@ com.microsoft.VSCode Caskfile editor
 com.microsoft.VSCode Codefile editor
 com.microsoft.VSCode Makefile editor
 com.microsoft.VSCode npmfile editor
+com.macromates.textmate .txt editor
 org.videolan.vlc .3gp all
 org.videolan.vlc .aac all
 org.videolan.vlc .aif all
