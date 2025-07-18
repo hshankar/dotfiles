@@ -10,19 +10,34 @@ export XDG_CONFIG_HOME = $(HOME)/.config
 export STOW_DIR = $(DOTFILES_DIR)
 export ACCEPT_EULA=Y
 
+# Check if required commands exist
+check-deps:
+	@echo "Checking dependencies..."
+	@command -v stow >/dev/null 2>&1 || { echo "Error: stow is required but not installed"; exit 1; }
+	@if [ "$(OS)" = "macos" ]; then \
+		command -v brew >/dev/null 2>&1 || { echo "Error: Homebrew is required but not installed"; exit 1; }; \
+	fi
+	@echo "All dependencies satisfied"
+
 all: $(OS)
 
-macos: sudo core-macos packages link duti
+# Selective installation targets
+minimal: check-deps oh-my-zsh link
+packages-only: check-deps brew-packages cask-apps
+config-only: check-deps link
+linux-no-sudo: oh-my-zsh link-no-stow
 
-linux: core-linux link
+macos: check-deps sudo core-macos packages link duti
+
+linux: check-deps core-linux link
 
 core-macos: oh-my-zsh brew
 
 core-linux: oh-my-zsh 
-	apt-get update
-	apt-get upgrade -y
-	apt-get dist-upgrade -f
-	apt-get -y install stow
+	sudo apt-get update
+	sudo apt-get upgrade -y
+	sudo apt-get dist-upgrade -f
+	sudo apt-get -y install stow
 
 sudo:
 	sudo -v
@@ -41,6 +56,30 @@ link:
 	mkdir -p $(HOME)/.local/runtime
 	chmod 700 $(HOME)/.local/runtime
 
+link-no-stow:
+	@echo "Creating symlinks manually (no stow required)..."
+	@for FILE in $$(ls -A runcom); do \
+		if [ -f $(HOME)/$$FILE -a ! -h $(HOME)/$$FILE ]; then \
+			echo "Backing up existing $$FILE"; \
+			mv $(HOME)/$$FILE $(HOME)/$$FILE.bak; \
+		fi; \
+		echo "Linking $$FILE"; \
+		ln -sf $(DOTFILES_DIR)/runcom/$$FILE $(HOME)/$$FILE; \
+	done
+	@mkdir -p $(XDG_CONFIG_HOME)
+	@for FILE in $$(find config -type f); do \
+		TARGET_DIR=$(XDG_CONFIG_HOME)/$$(dirname $$FILE | sed 's/^config\///'); \
+		mkdir -p $$TARGET_DIR; \
+		ln -sf $(DOTFILES_DIR)/$$FILE $$TARGET_DIR/$$(basename $$FILE); \
+	done
+	@mkdir -p $(HOME)/.oh-my-zsh/custom/themes
+	@ln -sf $(DOTFILES_DIR)/oh-my-zsh/themes/hshankar.zsh-theme $(HOME)/.oh-my-zsh/custom/themes/
+	@mkdir -p $(HOME)/.vim/colors
+	@ln -sf $(DOTFILES_DIR)/vim/colors/solarized.vim $(HOME)/.vim/colors/
+	@mkdir -p $(HOME)/.local/runtime
+	@chmod 700 $(HOME)/.local/runtime
+	@echo "Manual symlinks created successfully"
+
 unlink:
 	stow --delete -t $(HOME) runcom
 	stow --delete -t $(XDG_CONFIG_HOME) config
@@ -50,16 +89,28 @@ unlink:
 		mv -v $(HOME)/$$FILE.bak $(HOME)/$${FILE%%.bak}; fi; done
 
 brew:
-	is-executable brew || curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install.sh | zsh
+	@if ! is-executable brew; then \
+		echo "Installing Homebrew..."; \
+		curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh | bash || { echo "Homebrew installation failed"; exit 1; }; \
+	else \
+		echo "Homebrew already installed"; \
+	fi
 
 oh-my-zsh:
-	test -d $(HOME)/.oh-my-zsh || curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh | zsh
+	@if [ ! -d $(HOME)/.oh-my-zsh ]; then \
+		echo "Installing Oh My Zsh..."; \
+		curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh | RUNZSH=no bash || { echo "Oh My Zsh installation failed"; exit 1; }; \
+	else \
+		echo "Oh My Zsh already installed"; \
+	fi
 
 brew-packages: brew
-	brew bundle --file=$(DOTFILES_DIR)/install/Brewfile || true
+	@echo "Installing Homebrew packages..."
+	@brew bundle --file=$(DOTFILES_DIR)/install/Brewfile || { echo "Some brew packages failed to install, continuing..."; }
 
 cask-apps: brew
-	brew bundle --file=$(DOTFILES_DIR)/install/Caskfile || true
+	@echo "Installing Homebrew cask applications..."
+	@brew bundle --file=$(DOTFILES_DIR)/install/Caskfile || { echo "Some cask apps failed to install, continuing..."; }
 
 duti:
 	duti -v $(DOTFILES_DIR)/install/duti

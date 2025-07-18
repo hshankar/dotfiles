@@ -1,9 +1,9 @@
 [user]
-	name = Hari Menon
-	email = shaan.hari@gmail.com
+	name = PLACEHOLDER_NAME
+	email = PLACEHOLDER_EMAIL
 
 [github]
-	user = hshankar
+	user = PLACEHOLDER_GITHUB_USER
 
 [core]
 	excludesfile = ~/.config/git/ignore
