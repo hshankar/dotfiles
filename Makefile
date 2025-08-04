@@ -58,6 +58,7 @@ link:
 	@mkdir -p $(XDG_CONFIG_HOME)
 	stow -t $(HOME) runcom || { echo "Failed to stow runcom"; exit 1; }
 	stow -t $(XDG_CONFIG_HOME) config || { echo "Failed to stow config"; exit 1; }
+	@mkdir -p $(HOME)/.oh-my-zsh/custom || { echo "Failed to create oh-my-zsh custom directory"; exit 1; }
 	stow -t $(HOME)/.oh-my-zsh/custom oh-my-zsh || { echo "Failed to stow oh-my-zsh"; exit 1; }
 	stow -t $(HOME)/.vim vim || { echo "Failed to stow vim"; exit 1; }
 	@mkdir -p $(HOME)/.local/runtime
