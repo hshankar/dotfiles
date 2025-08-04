@@ -23,11 +23,11 @@ all: $(OS)
 
 # Selective installation targets
 minimal: check-deps oh-my-zsh link
-packages-only: check-deps brew-packages cask-apps
+packages-only: brew-packages cask-apps check-deps
 config-only: check-deps link
 linux-no-sudo: oh-my-zsh link-no-stow
 
-macos: check-deps sudo core-macos packages link duti
+macos: sudo core-macos packages check-deps link duti
 
 linux: check-deps core-linux link
 
