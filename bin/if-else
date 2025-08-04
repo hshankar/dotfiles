@@ -1,7 +1,40 @@
 #!/bin/zsh
 
-if eval "$1" > /dev/null 2>&1; then
-  echo -n "$2"
-else
-  echo -n "$3"
-fi
+# Safe command execution - only allow whitelisted commands
+case "$1" in
+  "command -v "*)
+    # Extract command name and check if it exists
+    cmd_name="${1#command -v }"
+    if command -v "$cmd_name" > /dev/null 2>&1; then
+      echo -n "$2"
+    else
+      echo -n "$3"
+    fi
+    ;;
+  "which "*)
+    # Extract command name and check if it exists
+    cmd_name="${1#which }"
+    if command -v "$cmd_name" > /dev/null 2>&1; then
+      echo -n "$2"
+    else
+      echo -n "$3"
+    fi
+    ;;
+  "test -"*|"[ -"*)
+    # Allow file test operations but sanitize the path
+    if [[ "$1" =~ ^(test|-\[)[[:space:]]+-[a-zA-Z][[:space:]]+[[:alnum:]/_.-]+$ ]]; then
+      if eval "$1" > /dev/null 2>&1; then
+        echo -n "$2"
+      else
+        echo -n "$3"
+      fi
+    else
+      echo "Error: Unsafe test expression" >&2
+      echo -n "$3"
+    fi
+    ;;
+  *)
+    echo "Error: Command not whitelisted for safety: $1" >&2
+    echo -n "$3"
+    ;;
+esac
