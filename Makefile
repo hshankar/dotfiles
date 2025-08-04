@@ -11,13 +11,19 @@ export STOW_DIR = $(DOTFILES_DIR)
 export ACCEPT_EULA=Y
 
 # Check if required commands exist
-check-deps:
+check-deps: ensure-bin-executable
 	@echo "Checking dependencies..."
 	@command -v stow >/dev/null 2>&1 || { echo "Error: stow is required but not installed"; exit 1; }
 	@if [ "$(OS)" = "macos" ]; then \
 		command -v brew >/dev/null 2>&1 || { echo "Error: Homebrew is required but not installed"; exit 1; }; \
 	fi
 	@echo "All dependencies satisfied"
+
+# Ensure all bin scripts are executable
+ensure-bin-executable:
+	@echo "Ensuring bin scripts are executable..."
+	@chmod +x bin/* || { echo "Failed to make bin scripts executable"; exit 1; }
+	@echo "Bin scripts are now executable"
 
 all: $(OS)
 
@@ -109,6 +115,16 @@ brew:
 		curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh -o "$$temp_script" || { echo "Failed to download Homebrew installer"; exit 1; }; \
 		/bin/bash "$$temp_script" || { echo "Homebrew installation failed"; rm -f "$$temp_script"; exit 1; }; \
 		rm -f "$$temp_script"; \
+		echo "Homebrew installation completed. You may need to add it to your PATH."; \
+		if [ "$(OS)" = "macos" ]; then \
+			if [ -x "/opt/homebrew/bin/brew" ]; then \
+				echo "Homebrew installed at /opt/homebrew (ARM64)"; \
+			elif [ -x "/usr/local/bin/brew" ]; then \
+				echo "Homebrew installed at /usr/local (Intel)"; \
+			else \
+				echo "Warning: Homebrew installation completed but brew not found in expected locations"; \
+			fi; \
+		fi; \
 	else \
 		echo "Homebrew already installed"; \
 	fi

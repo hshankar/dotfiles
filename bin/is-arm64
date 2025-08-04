@@ -1,0 +1,9 @@
+#!/bin/zsh
+
+## This script is used to determine if the current Mac is ARM64 (Apple Silicon). It returns 0 if it is, 1 if it is not.
+
+if [[ "$(uname -m)" == "arm64" ]]; then
+  exit 0
+else
+  exit 1
+fi

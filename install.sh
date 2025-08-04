@@ -223,9 +223,10 @@ setup_git_config() {
     sed -i.bak "s|PLACEHOLDER_GITHUB_USER|$github_user|" config/git/config || { log_error "Failed to update GitHub user"; exit 1; }
     
     # Set OS-appropriate credential helper
-    if [[ "$OS" == "macos" ]]; then
+    local os=$(detect_os)
+    if [[ "$os" == "macos" ]]; then
         sed -i.bak "s|helper = osxkeychain|helper = osxkeychain|" config/git/config
-    elif [[ "$OS" == "linux" ]]; then
+    elif [[ "$os" == "linux" ]]; then
         sed -i.bak "s|helper = osxkeychain|helper = store|" config/git/config
     fi
     
