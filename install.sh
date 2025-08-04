@@ -64,19 +64,30 @@ install_prerequisites() {
         # Install Homebrew if not present
         if ! command_exists brew; then
             log_info "Installing Homebrew..."
-            /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+            local homebrew_script="/tmp/homebrew-install.sh"
+            log_info "Downloading Homebrew installer..."
+            curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh -o "$homebrew_script"
+            if [[ ! -f "$homebrew_script" ]]; then
+                log_error "Failed to download Homebrew installer"
+                exit 1
+            fi
+            log_info "Executing Homebrew installer..."
+            /bin/bash "$homebrew_script"
+            rm -f "$homebrew_script"
         fi
         
     elif [[ "$os" == "linux" ]]; then
         # Update package manager
         if command_exists apt-get; then
-            sudo apt-get update
-            sudo apt-get install -y git curl build-essential
+            log_info "Updating package manager and installing dependencies..."
+            sudo apt-get update || { log_error "Failed to update apt package list"; exit 1; }
+            sudo apt-get install -y git curl build-essential || { log_error "Failed to install required packages"; exit 1; }
         elif command_exists yum; then
-            sudo yum update -y
-            sudo yum install -y git curl gcc gcc-c++ make
+            log_info "Updating package manager and installing dependencies..."
+            sudo yum update -y || { log_error "Failed to update yum packages"; exit 1; }
+            sudo yum install -y git curl gcc gcc-c++ make || { log_error "Failed to install required packages"; exit 1; }
         else
-            log_error "Unsupported Linux distribution"
+            log_error "Unsupported Linux distribution - neither apt-get nor yum found"
             exit 1
         fi
     fi
@@ -92,12 +103,16 @@ install_prerequisites() {
 setup_dotfiles() {
     if [[ -d "$DOTFILES_DIR" ]]; then
         log_info "Dotfiles directory exists, updating..."
-        cd "$DOTFILES_DIR"
-        git pull origin main
+        cd "$DOTFILES_DIR" || { log_error "Failed to change to dotfiles directory"; exit 1; }
+        if ! git status --porcelain 2>/dev/null | grep -q .; then
+            git pull origin main || { log_error "Failed to update dotfiles repository"; exit 1; }
+        else
+            log_warn "Local changes detected in dotfiles directory, skipping git pull"
+        fi
     else
         log_info "Cloning dotfiles repository..."
-        git clone "$DOTFILES_REPO" "$DOTFILES_DIR"
-        cd "$DOTFILES_DIR"
+        git clone "$DOTFILES_REPO" "$DOTFILES_DIR" || { log_error "Failed to clone dotfiles repository"; exit 1; }
+        cd "$DOTFILES_DIR" || { log_error "Failed to change to dotfiles directory"; exit 1; }
     fi
 }
 
@@ -116,20 +131,53 @@ setup_git_config() {
         log_warn "Skipping Git configuration - you'll need to set it manually later"
         return 0
     else
-        echo -n "Enter your full name: "
-        read -r git_name
-        echo -n "Enter your email: "
-        read -r git_email
-        echo -n "Enter your GitHub username: "
-        read -r github_user
+        while [[ -z "$git_name" ]]; do
+            echo -n "Enter your full name: "
+            read -r git_name
+            [[ -z "$git_name" ]] && log_warn "Name cannot be empty. Please try again."
+        done
+        
+        while [[ -z "$git_email" || ! "$git_email" =~ ^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$ ]]; do
+            echo -n "Enter your email: "
+            read -r git_email
+            if [[ -z "$git_email" ]]; then
+                log_warn "Email cannot be empty. Please try again."
+            elif [[ ! "$git_email" =~ ^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$ ]]; then
+                log_warn "Invalid email format. Please enter a valid email address."
+            fi
+        done
+        
+        while [[ -z "$github_user" ]]; do
+            echo -n "Enter your GitHub username: "
+            read -r github_user
+            [[ -z "$github_user" ]] && log_warn "GitHub username cannot be empty. Please try again."
+        done
+    fi
+    
+    # Validate inputs
+    if [[ -z "$git_name" || -z "$git_email" || -z "$github_user" ]]; then
+        log_error "Git configuration values cannot be empty"
+        exit 1
+    fi
+    
+    # Validate email format
+    if [[ ! "$git_email" =~ ^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$ ]]; then
+        log_error "Invalid email format: $git_email"
+        exit 1
+    fi
+    
+    # Check if git config file exists
+    if [[ ! -f "config/git/config" ]]; then
+        log_error "Git config template not found at config/git/config"
+        exit 1
     fi
     
     # Update git config with user details
-    sed -i.bak "s/PLACEHOLDER_NAME/$git_name/" config/git/config
-    sed -i.bak "s/PLACEHOLDER_EMAIL/$git_email/" config/git/config
-    sed -i.bak "s/PLACEHOLDER_GITHUB_USER/$github_user/" config/git/config
+    sed -i.bak "s/PLACEHOLDER_NAME/$git_name/" config/git/config || { log_error "Failed to update git name"; exit 1; }
+    sed -i.bak "s/PLACEHOLDER_EMAIL/$git_email/" config/git/config || { log_error "Failed to update git email"; exit 1; }
+    sed -i.bak "s/PLACEHOLDER_GITHUB_USER/$github_user/" config/git/config || { log_error "Failed to update GitHub user"; exit 1; }
     
-    rm config/git/config.bak
+    rm -f config/git/config.bak
     
     log_success "Git configuration updated"
 }
@@ -165,14 +213,14 @@ main() {
         
         if [[ "$has_sudo" =~ ^[FfNn]|false$ ]]; then
             log_info "Running Linux installation without sudo..."
-            make linux-no-sudo
+            make linux-no-sudo || { log_error "Linux installation (no-sudo) failed"; exit 1; }
         else
             log_info "Running full Linux installation..."
-            make linux
+            make linux || { log_error "Linux installation failed"; exit 1; }
         fi
     else
         log_info "Running dotfiles installation..."
-        make all
+        make all || { log_error "Dotfiles installation failed"; exit 1; }
     fi
     
     log_success "Dotfiles installation completed!"

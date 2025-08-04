@@ -40,43 +40,55 @@ core-linux: oh-my-zsh
 	sudo apt-get -y install stow
 
 sudo:
+	@echo "Requesting sudo access (required for some operations)..."
 	sudo -v
-	while true; do sudo -n true; sleep 60; kill -0 "$$" || exit; done 2>/dev/null &
+	@echo "Sudo access granted"
 
 packages: brew-packages cask-apps
 
 link:
-	for FILE in $$(\ls -A runcom); do if [ -f $(HOME)/$$FILE -a ! -h $(HOME)/$$FILE ]; then \
-		mv -v $(HOME)/$$FILE{,.bak}; fi; done
-	mkdir -p $(XDG_CONFIG_HOME)
-	stow -t $(HOME) runcom
-	stow -t $(XDG_CONFIG_HOME) config
-	stow -t $(HOME)/.oh-my-zsh/custom oh-my-zsh
-	stow -t $(HOME)/.vim vim
-	mkdir -p $(HOME)/.local/runtime
-	chmod 700 $(HOME)/.local/runtime
+	@echo "Creating backup of existing files and setting up symlinks..."
+	@for FILE in $$(ls -A runcom 2>/dev/null || true); do \
+		if [ -f $(HOME)/$$FILE -a ! -h $(HOME)/$$FILE ]; then \
+			backup_file="$(HOME)/$$FILE.bak.$$(date +%s)"; \
+			echo "Backing up $$FILE to $$backup_file"; \
+			mv $(HOME)/$$FILE "$$backup_file" || { echo "Failed to backup $$FILE"; exit 1; }; \
+		fi; \
+	done
+	@mkdir -p $(XDG_CONFIG_HOME)
+	stow -t $(HOME) runcom || { echo "Failed to stow runcom"; exit 1; }
+	stow -t $(XDG_CONFIG_HOME) config || { echo "Failed to stow config"; exit 1; }
+	stow -t $(HOME)/.oh-my-zsh/custom oh-my-zsh || { echo "Failed to stow oh-my-zsh"; exit 1; }
+	stow -t $(HOME)/.vim vim || { echo "Failed to stow vim"; exit 1; }
+	@mkdir -p $(HOME)/.local/runtime
+	@chmod 700 $(HOME)/.local/runtime
 
 link-no-stow:
 	@echo "Creating symlinks manually (no stow required)..."
-	@for FILE in $$(ls -A runcom); do \
+	@for FILE in $$(ls -A runcom 2>/dev/null || true); do \
 		if [ -f $(HOME)/$$FILE -a ! -h $(HOME)/$$FILE ]; then \
-			echo "Backing up existing $$FILE"; \
-			mv $(HOME)/$$FILE $(HOME)/$$FILE.bak; \
+			backup_file="$(HOME)/$$FILE.bak.$$(date +%s)"; \
+			echo "Backing up existing $$FILE to $$backup_file"; \
+			mv $(HOME)/$$FILE "$$backup_file" || { echo "Failed to backup $$FILE"; exit 1; }; \
 		fi; \
 		echo "Linking $$FILE"; \
-		ln -sf $(DOTFILES_DIR)/runcom/$$FILE $(HOME)/$$FILE; \
+		ln -sf $(DOTFILES_DIR)/runcom/$$FILE $(HOME)/$$FILE || { echo "Failed to link $$FILE"; exit 1; }; \
 	done
-	@mkdir -p $(XDG_CONFIG_HOME)
-	@for FILE in $$(find config -type f); do \
+	@mkdir -p $(XDG_CONFIG_HOME) || { echo "Failed to create XDG_CONFIG_HOME"; exit 1; }
+	@for FILE in $$(find config -type f 2>/dev/null || true); do \
 		TARGET_DIR=$(XDG_CONFIG_HOME)/$$(dirname $$FILE | sed 's/^config\///'); \
-		mkdir -p $$TARGET_DIR; \
-		ln -sf $(DOTFILES_DIR)/$$FILE $$TARGET_DIR/$$(basename $$FILE); \
+		mkdir -p $$TARGET_DIR || { echo "Failed to create directory $$TARGET_DIR"; exit 1; }; \
+		ln -sf $(DOTFILES_DIR)/$$FILE $$TARGET_DIR/$$(basename $$FILE) || { echo "Failed to link config file $$FILE"; exit 1; }; \
 	done
-	@mkdir -p $(HOME)/.oh-my-zsh/custom/themes
-	@ln -sf $(DOTFILES_DIR)/oh-my-zsh/themes/hshankar.zsh-theme $(HOME)/.oh-my-zsh/custom/themes/
-	@mkdir -p $(HOME)/.vim/colors
-	@ln -sf $(DOTFILES_DIR)/vim/colors/solarized.vim $(HOME)/.vim/colors/
-	@mkdir -p $(HOME)/.local/runtime
+	@mkdir -p $(HOME)/.oh-my-zsh/custom/themes || { echo "Failed to create oh-my-zsh themes directory"; exit 1; }
+	@if [ -f $(DOTFILES_DIR)/oh-my-zsh/themes/hshankar.zsh-theme ]; then \
+		ln -sf $(DOTFILES_DIR)/oh-my-zsh/themes/hshankar.zsh-theme $(HOME)/.oh-my-zsh/custom/themes/ || { echo "Failed to link zsh theme"; exit 1; }; \
+	fi
+	@mkdir -p $(HOME)/.vim/colors || { echo "Failed to create vim colors directory"; exit 1; }
+	@if [ -f $(DOTFILES_DIR)/vim/colors/solarized.vim ]; then \
+		ln -sf $(DOTFILES_DIR)/vim/colors/solarized.vim $(HOME)/.vim/colors/ || { echo "Failed to link vim colorscheme"; exit 1; }; \
+	fi
+	@mkdir -p $(HOME)/.local/runtime || { echo "Failed to create local runtime directory"; exit 1; }
 	@chmod 700 $(HOME)/.local/runtime
 	@echo "Manual symlinks created successfully"
 
@@ -91,7 +103,10 @@ unlink:
 brew:
 	@if ! is-executable brew; then \
 		echo "Installing Homebrew..."; \
-		curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh | bash || { echo "Homebrew installation failed"; exit 1; }; \
+		temp_script=$$(mktemp); \
+		curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh -o "$$temp_script" || { echo "Failed to download Homebrew installer"; exit 1; }; \
+		/bin/bash "$$temp_script" || { echo "Homebrew installation failed"; rm -f "$$temp_script"; exit 1; }; \
+		rm -f "$$temp_script"; \
 	else \
 		echo "Homebrew already installed"; \
 	fi
@@ -99,7 +114,10 @@ brew:
 oh-my-zsh:
 	@if [ ! -d $(HOME)/.oh-my-zsh ]; then \
 		echo "Installing Oh My Zsh..."; \
-		curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh | RUNZSH=no bash || { echo "Oh My Zsh installation failed"; exit 1; }; \
+		temp_script=$$(mktemp); \
+		curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh -o "$$temp_script" || { echo "Failed to download Oh My Zsh installer"; exit 1; }; \
+		RUNZSH=no /bin/bash "$$temp_script" || { echo "Oh My Zsh installation failed"; rm -f "$$temp_script"; exit 1; }; \
+		rm -f "$$temp_script"; \
 	else \
 		echo "Oh My Zsh already installed"; \
 	fi
