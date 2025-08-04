@@ -10,26 +10,44 @@ export XDG_CONFIG_HOME = $(HOME)/.config
 export STOW_DIR = $(DOTFILES_DIR)
 export ACCEPT_EULA=Y
 
-# Check if required commands exist
+# Check if required commands exist and install if missing
 check-deps:
 	@echo "Checking dependencies..."
-	@command -v stow >/dev/null 2>&1 || { echo "Error: stow is required but not installed"; exit 1; }
 	@if [ "$(OS)" = "macos" ]; then \
-		command -v brew >/dev/null 2>&1 || { echo "Error: Homebrew is required but not installed"; exit 1; }; \
+		if ! command -v brew >/dev/null 2>&1; then \
+			echo "Homebrew not found, installing..."; \
+			curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh | bash || { echo "Homebrew installation failed"; exit 1; }; \
+		else \
+			echo "Homebrew already installed"; \
+		fi; \
 	fi
-	@echo "All dependencies satisfied"
+	@echo "Basic dependencies satisfied"
+
+# Check if stow is installed and install if missing
+check-stow:
+	@echo "Checking for stow..."
+	@if ! command -v stow >/dev/null 2>&1; then \
+		echo "stow not found, installing..."; \
+		if [ "$(OS)" = "macos" ]; then \
+			brew install stow || { echo "Failed to install stow via Homebrew"; exit 1; }; \
+		else \
+			sudo apt-get update && sudo apt-get install -y stow || { echo "Failed to install stow via apt"; exit 1; }; \
+		fi; \
+	else \
+		echo "stow already available"; \
+	fi
 
 all: $(OS)
 
 # Selective installation targets
-minimal: check-deps oh-my-zsh link
+minimal: check-deps oh-my-zsh check-stow link
 packages-only: check-deps brew-packages cask-apps
-config-only: check-deps link
+config-only: check-deps check-stow link
 linux-no-sudo: oh-my-zsh link-no-stow
 
-macos: check-deps sudo core-macos packages link duti
+macos: check-deps sudo core-macos packages check-stow link duti
 
-linux: check-deps core-linux link
+linux: check-deps core-linux check-stow link
 
 core-macos: oh-my-zsh brew
 
@@ -37,7 +55,6 @@ core-linux: oh-my-zsh
 	sudo apt-get update
 	sudo apt-get upgrade -y
 	sudo apt-get dist-upgrade -f
-	sudo apt-get -y install stow
 
 sudo:
 	@echo "Requesting sudo access (required for some operations)..."
