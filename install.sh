@@ -117,6 +117,27 @@ setup_dotfiles() {
 }
 
 # Setup git configuration (supports env vars for automation)
+# Input validation functions
+readonly EMAIL_REGEX='^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$'
+
+validate_git_name() {
+    local name="$1"
+    # Allow letters, numbers, spaces, hyphens, apostrophes, periods
+    if [[ ! "$name" =~ ^[A-Za-z0-9[:space:]\.\'-]+$ ]]; then
+        return 1
+    fi
+    return 0
+}
+
+validate_github_username() {
+    local username="$1"
+    # GitHub usernames can only contain alphanumeric characters and hyphens
+    if [[ ! "$username" =~ ^[A-Za-z0-9\-]+$ ]]; then
+        return 1
+    fi
+    return 0
+}
+
 setup_git_config() {
     log_info "Setting up Git configuration..."
     
@@ -125,6 +146,20 @@ setup_git_config() {
         git_name="$GIT_NAME"
         git_email="$GIT_EMAIL"
         github_user="$GITHUB_USER"
+        
+        # Validate environment variables
+        if ! validate_git_name "$git_name"; then
+            log_error "Invalid GIT_NAME environment variable: contains invalid characters"
+            exit 1
+        fi
+        if ! validate_github_username "$github_user"; then
+            log_error "Invalid GITHUB_USER environment variable: contains invalid characters"
+            exit 1
+        fi
+        if [[ ! "$git_email" =~ $EMAIL_REGEX ]]; then
+            log_error "Invalid GIT_EMAIL environment variable: invalid email format"
+            exit 1
+        fi
         log_info "Using environment variables for Git config"
     elif [[ "$NON_INTERACTIVE" == "true" ]]; then
         log_warn "Non-interactive mode but no Git environment variables set"
@@ -134,15 +169,20 @@ setup_git_config() {
         while [[ -z "$git_name" ]]; do
             echo -n "Enter your full name: "
             read -r git_name
-            [[ -z "$git_name" ]] && log_warn "Name cannot be empty. Please try again."
+            if [[ -z "$git_name" ]]; then
+                log_warn "Name cannot be empty. Please try again."
+            elif ! validate_git_name "$git_name"; then
+                log_warn "Name contains invalid characters. Please use only letters, numbers, spaces, hyphens, apostrophes, and periods."
+                git_name=""
+            fi
         done
         
-        while [[ -z "$git_email" || ! "$git_email" =~ ^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$ ]]; do
+        while [[ -z "$git_email" || ! "$git_email" =~ $EMAIL_REGEX ]]; do
             echo -n "Enter your email: "
             read -r git_email
             if [[ -z "$git_email" ]]; then
                 log_warn "Email cannot be empty. Please try again."
-            elif [[ ! "$git_email" =~ ^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$ ]]; then
+            elif [[ ! "$git_email" =~ $EMAIL_REGEX ]]; then
                 log_warn "Invalid email format. Please enter a valid email address."
             fi
         done
@@ -150,7 +190,12 @@ setup_git_config() {
         while [[ -z "$github_user" ]]; do
             echo -n "Enter your GitHub username: "
             read -r github_user
-            [[ -z "$github_user" ]] && log_warn "GitHub username cannot be empty. Please try again."
+            if [[ -z "$github_user" ]]; then
+                log_warn "GitHub username cannot be empty. Please try again."
+            elif ! validate_github_username "$github_user"; then
+                log_warn "GitHub username contains invalid characters. Please use only letters, numbers, and hyphens."
+                github_user=""
+            fi
         done
     fi
     
@@ -161,7 +206,7 @@ setup_git_config() {
     fi
     
     # Validate email format
-    if [[ ! "$git_email" =~ ^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$ ]]; then
+    if [[ ! "$git_email" =~ $EMAIL_REGEX ]]; then
         log_error "Invalid email format: $git_email"
         exit 1
     fi
@@ -172,10 +217,17 @@ setup_git_config() {
         exit 1
     fi
     
-    # Update git config with user details
-    sed -i.bak "s/PLACEHOLDER_NAME/$git_name/" config/git/config || { log_error "Failed to update git name"; exit 1; }
-    sed -i.bak "s/PLACEHOLDER_EMAIL/$git_email/" config/git/config || { log_error "Failed to update git email"; exit 1; }
-    sed -i.bak "s/PLACEHOLDER_GITHUB_USER/$github_user/" config/git/config || { log_error "Failed to update GitHub user"; exit 1; }
+    # Update git config with user details (using | as delimiter to avoid injection issues)
+    sed -i.bak "s|PLACEHOLDER_NAME|$git_name|" config/git/config || { log_error "Failed to update git name"; exit 1; }
+    sed -i.bak "s|PLACEHOLDER_EMAIL|$git_email|" config/git/config || { log_error "Failed to update git email"; exit 1; }
+    sed -i.bak "s|PLACEHOLDER_GITHUB_USER|$github_user|" config/git/config || { log_error "Failed to update GitHub user"; exit 1; }
+    
+    # Set OS-appropriate credential helper
+    if [[ "$OS" == "macos" ]]; then
+        sed -i.bak "s|helper = osxkeychain|helper = osxkeychain|" config/git/config
+    elif [[ "$OS" == "linux" ]]; then
+        sed -i.bak "s|helper = osxkeychain|helper = store|" config/git/config
+    fi
     
     rm -f config/git/config.bak
     

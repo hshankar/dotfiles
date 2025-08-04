@@ -1,7 +1,7 @@
 # If you come from bash you might have to change your $PATH.
-export PATH=$HOME/bin:/usr/local/bin:$PATH
+export PATH="$HOME/bin:/usr/local/bin:$PATH"
 export PATH=/Applications/Visual\ Studio\ Code.app/Contents/Resources/app/bin:$PATH
-export PATH=~/code/flutter/bin:$PATH
+export PATH="$HOME/code/flutter/bin:$PATH"
 export JAVA_HOME=$(/usr/libexec/java_home -v 17)
 
 # Path to your oh-my-zsh installation.
@@ -118,3 +118,7 @@ alias claude="/Users/hari/.claude/local/claude"
 
 [[ "$TERM_PROGRAM" == "kiro" ]] && . "$(kiro --locate-shell-integration-path zsh)"
 export PATH="$PATH:$HOME/Library/Android/sdk/platform-tools:$HOME/Library/Android/sdk/emulator"
+export PATH="$PATH:$HOME/.maestro/bin"
+
+# Contextual History
+[[ -f "$HOME/.local/share/contextual-history/contextual-history.zsh" ]] && source "$HOME/.local/share/contextual-history/contextual-history.zsh"

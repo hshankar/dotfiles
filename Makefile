@@ -103,7 +103,8 @@ unlink:
 brew:
 	@if ! is-executable brew; then \
 		echo "Installing Homebrew..."; \
-		temp_script=$$(mktemp); \
+		temp_script=$$(mktemp) || { echo "Failed to create temporary file"; exit 1; }; \
+		test -n "$$temp_script" || { echo "Empty temporary file path"; exit 1; }; \
 		curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh -o "$$temp_script" || { echo "Failed to download Homebrew installer"; exit 1; }; \
 		/bin/bash "$$temp_script" || { echo "Homebrew installation failed"; rm -f "$$temp_script"; exit 1; }; \
 		rm -f "$$temp_script"; \
@@ -114,7 +115,8 @@ brew:
 oh-my-zsh:
 	@if [ ! -d $(HOME)/.oh-my-zsh ]; then \
 		echo "Installing Oh My Zsh..."; \
-		temp_script=$$(mktemp); \
+		temp_script=$$(mktemp) || { echo "Failed to create temporary file"; exit 1; }; \
+		test -n "$$temp_script" || { echo "Empty temporary file path"; exit 1; }; \
 		curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh -o "$$temp_script" || { echo "Failed to download Oh My Zsh installer"; exit 1; }; \
 		RUNZSH=no /bin/bash "$$temp_script" || { echo "Oh My Zsh installation failed"; rm -f "$$temp_script"; exit 1; }; \
 		rm -f "$$temp_script"; \

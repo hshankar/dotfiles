@@ -6,8 +6,13 @@
 CURRENT_SCRIPT=$BASH_SOURCE
 
 if [[ -n $CURRENT_SCRIPT && -x readlink ]]; then
-  SCRIPT_PATH=$(readlink -n $CURRENT_SCRIPT)
-  DOTFILES_DIR="${PWD}/$(dirname $(dirname $SCRIPT_PATH))"
+  SCRIPT_PATH=$(readlink -n "$CURRENT_SCRIPT")
+  if [[ -n "$SCRIPT_PATH" ]]; then
+    DOTFILES_DIR="${PWD}/$(dirname "$(dirname "$SCRIPT_PATH")")"
+  else
+    echo "Warning: readlink failed, falling back to ~/.dotfiles"
+    DOTFILES_DIR="$HOME/.dotfiles"
+  fi
 elif [ -d "$HOME/.dotfiles" ]; then
   DOTFILES_DIR="$HOME/.dotfiles"
 else
@@ -39,7 +44,7 @@ eval "$(dircolors -b "$DOTFILES_DIR"/system/.dir_colors)"
 
 unset CURRENT_SCRIPT SCRIPT_PATH DOTFILE
 export DOTFILES_DIR
-export PATH=$PATH:$HOME/.maestro/bin
+export PATH="$PATH:$HOME/.maestro/bin"
 
 # Contextual History
-source "/Users/hari/.local/share/contextual-history/contextual-history.bash"
+[[ -f "$HOME/.local/share/contextual-history/contextual-history.bash" ]] && source "$HOME/.local/share/contextual-history/contextual-history.bash"
