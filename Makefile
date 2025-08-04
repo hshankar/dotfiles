@@ -13,23 +13,28 @@ export ACCEPT_EULA=Y
 # Check if required commands exist
 check-deps:
 	@echo "Checking dependencies..."
-	@command -v stow >/dev/null 2>&1 || { echo "Error: stow is required but not installed"; exit 1; }
 	@if [ "$(OS)" = "macos" ]; then \
 		command -v brew >/dev/null 2>&1 || { echo "Error: Homebrew is required but not installed"; exit 1; }; \
 	fi
-	@echo "All dependencies satisfied"
+	@echo "Basic dependencies satisfied"
+
+# Check if stow is installed (separate from basic deps)
+check-stow:
+	@echo "Checking for stow..."
+	@command -v stow >/dev/null 2>&1 || { echo "Error: stow is required but not installed"; exit 1; }
+	@echo "stow is available"
 
 all: $(OS)
 
 # Selective installation targets
-minimal: check-deps oh-my-zsh link
+minimal: check-deps oh-my-zsh check-stow link
 packages-only: check-deps brew-packages cask-apps
-config-only: check-deps link
+config-only: check-deps check-stow link
 linux-no-sudo: oh-my-zsh link-no-stow
 
-macos: check-deps sudo core-macos packages link duti
+macos: check-deps sudo core-macos packages check-stow link duti
 
-linux: check-deps core-linux link
+linux: check-deps core-linux check-stow link
 
 core-macos: oh-my-zsh brew
 
