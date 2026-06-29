@@ -102,8 +102,14 @@ unlink:
 	stow --delete -t $(XDG_CONFIG_HOME) config
 	stow --delete -t $(HOME)/.oh-my-zsh/custom oh-my-zsh
 	stow --delete -t $(HOME)/.vim vim
-	for FILE in $$(\ls -A runcom); do if [ -f $(HOME)/$$FILE.bak ]; then \
-		mv -v $(HOME)/$$FILE.bak $(HOME)/$${FILE%%.bak}; fi; done
+	@# `link` backs up existing files as <file>.bak.<timestamp>; restore the most recent
+	@for FILE in $$(\ls -A runcom 2>/dev/null); do \
+		latest=$$(ls -t $(HOME)/$$FILE.bak.* 2>/dev/null | head -1); \
+		if [ -n "$$latest" ]; then \
+			echo "Restoring $$FILE from $$latest"; \
+			mv -v "$$latest" $(HOME)/$$FILE; \
+		fi; \
+	done
 
 brew:
 	@if ! is-executable brew; then \
