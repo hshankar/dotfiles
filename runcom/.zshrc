@@ -1,8 +1,9 @@
 # If you come from bash you might have to change your $PATH.
 export PATH="$HOME/bin:/usr/local/bin:$PATH"
-export PATH=/Applications/Visual\ Studio\ Code.app/Contents/Resources/app/bin:$PATH
-export PATH="$HOME/code/flutter/bin:$PATH"
-export JAVA_HOME=$(/usr/libexec/java_home -v 17)
+# Tool-specific PATH additions (guarded so missing tools/dirs don't error)
+[[ -d "/Applications/Visual Studio Code.app/Contents/Resources/app/bin" ]] && export PATH="/Applications/Visual Studio Code.app/Contents/Resources/app/bin:$PATH"
+[[ -d "$HOME/code/flutter/bin" ]] && export PATH="$HOME/code/flutter/bin:$PATH"
+if command -v /usr/libexec/java_home >/dev/null 2>&1; then export JAVA_HOME=$(/usr/libexec/java_home -v 17); fi
 
 # Path to your oh-my-zsh installation.
 export ZSH="$HOME/.oh-my-zsh"
@@ -102,23 +103,18 @@ fi
 # Example aliases
 # alias zshconfig="mate ~/.zshrc"
 # alias ohmyzsh="mate ~/.oh-my-zsh"
-if which rbenv > /dev/null; then eval "$(rbenv init -)"; fi
+if command -v rbenv >/dev/null 2>&1; then eval "$(rbenv init -)"; fi
 export GEM_HOME=$HOME/.gem
 export PATH=$GEM_HOME/bin:$PATH
 
-
-
-# The next line updates PATH for the Google Cloud SDK.
-if [ -f '/Users/hari/Downloads/google-cloud-sdk/path.zsh.inc' ]; then . '/Users/hari/Downloads/google-cloud-sdk/path.zsh.inc'; fi
-
-# The next line enables shell command completion for gcloud.
-if [ -f '/Users/hari/Downloads/google-cloud-sdk/completion.zsh.inc' ]; then . '/Users/hari/Downloads/google-cloud-sdk/completion.zsh.inc'; fi
-
-alias claude="/Users/hari/.claude/local/claude"
-
-[[ "$TERM_PROGRAM" == "kiro" ]] && . "$(kiro --locate-shell-integration-path zsh)"
-export PATH="$PATH:$HOME/Library/Android/sdk/platform-tools:$HOME/Library/Android/sdk/emulator"
-export PATH="$PATH:$HOME/.maestro/bin"
+[[ -d "$HOME/Library/Android/sdk/platform-tools" ]] && export PATH="$PATH:$HOME/Library/Android/sdk/platform-tools"
+[[ -d "$HOME/Library/Android/sdk/emulator" ]] && export PATH="$PATH:$HOME/Library/Android/sdk/emulator"
+[[ -d "$HOME/.maestro/bin" ]] && export PATH="$PATH:$HOME/.maestro/bin"
 
 # Contextual History
 [[ -f "$HOME/.local/share/contextual-history/contextual-history.zsh" ]] && source "$HOME/.local/share/contextual-history/contextual-history.zsh"
+
+# Local bin and version managers (guarded so missing tools don't error)
+[[ -r "$HOME/.local/bin/env" ]] && . "$HOME/.local/bin/env"
+command -v mise >/dev/null 2>&1 && eval "$(mise activate zsh)"
+command -v direnv >/dev/null 2>&1 && eval "$(direnv hook zsh)"
