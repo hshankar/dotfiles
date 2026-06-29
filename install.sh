@@ -81,11 +81,11 @@ install_prerequisites() {
         if command_exists apt-get; then
             log_info "Updating package manager and installing dependencies..."
             sudo apt-get update || { log_error "Failed to update apt package list"; exit 1; }
-            sudo apt-get install -y git curl build-essential || { log_error "Failed to install required packages"; exit 1; }
+            sudo apt-get install -y git curl build-essential zsh stow || { log_error "Failed to install required packages"; exit 1; }
         elif command_exists yum; then
             log_info "Updating package manager and installing dependencies..."
             sudo yum update -y || { log_error "Failed to update yum packages"; exit 1; }
-            sudo yum install -y git curl gcc gcc-c++ make || { log_error "Failed to install required packages"; exit 1; }
+            sudo yum install -y git curl gcc gcc-c++ make zsh stow || { log_error "Failed to install required packages"; exit 1; }
         else
             log_error "Unsupported Linux distribution - neither apt-get nor yum found"
             exit 1
