@@ -68,10 +68,10 @@ set smartcase
 set showmatch
 map <leader><space> :let @/=''<cr> " clear search
 
-" Remap help key.
-inoremap <F1> <ESC>:set invfullscreen<CR>a
-nnoremap <F1> :set invfullscreen<CR>
-vnoremap <F1> :set invfullscreen<CR>
+" F1: clear search highlight (fullscreen is not a vim option; the previous
+" invfullscreen mappings only ever errored)
+nnoremap <F1> :nohlsearch<CR>
+vnoremap <F1> :nohlsearch<CR>
 
 " Textmate holdouts
 
