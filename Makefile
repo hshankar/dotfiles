@@ -41,8 +41,6 @@ core-macos: oh-my-zsh brew
 
 core-linux: oh-my-zsh 
 	sudo apt-get update
-	sudo apt-get upgrade -y
-	sudo apt-get dist-upgrade -f
 	sudo apt-get -y install stow
 
 sudo:
