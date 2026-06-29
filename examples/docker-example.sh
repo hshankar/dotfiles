@@ -16,7 +16,5 @@ export SUDO="false"
 # Install dotfiles
 curl -fsSL https://raw.githubusercontent.com/hshankar/dotfiles/main/install.sh | bash
 
-# Source the new shell configuration
-source ~/.zshrc
-
-echo "Dotfiles installation complete!"
+# Start a zsh login shell to pick up the new configuration
+exec zsh -l
