@@ -82,8 +82,14 @@ link-no-stow:
 	@mkdir -p $(XDG_CONFIG_HOME) || { echo "Failed to create XDG_CONFIG_HOME"; exit 1; }
 	@for FILE in $$(find config -type f 2>/dev/null || true); do \
 		TARGET_DIR=$(XDG_CONFIG_HOME)/$$(dirname $$FILE | sed 's/^config\///'); \
+		TARGET_FILE=$$TARGET_DIR/$$(basename $$FILE); \
 		mkdir -p $$TARGET_DIR || { echo "Failed to create directory $$TARGET_DIR"; exit 1; }; \
-		ln -sf $(DOTFILES_DIR)/$$FILE $$TARGET_DIR/$$(basename $$FILE) || { echo "Failed to link config file $$FILE"; exit 1; }; \
+		if [ -e $$TARGET_FILE -a ! -h $$TARGET_FILE ]; then \
+			backup_file="$$TARGET_FILE.bak.$$(date +%s)"; \
+			echo "Backing up existing config file $$TARGET_FILE to $$backup_file"; \
+			mv $$TARGET_FILE "$$backup_file" || { echo "Failed to backup $$TARGET_FILE"; exit 1; }; \
+		fi; \
+		ln -sf $(DOTFILES_DIR)/$$FILE $$TARGET_FILE || { echo "Failed to link config file $$FILE"; exit 1; }; \
 	done
 	@mkdir -p $(HOME)/.oh-my-zsh/custom/themes || { echo "Failed to create oh-my-zsh themes directory"; exit 1; }
 	@if [ -f $(DOTFILES_DIR)/oh-my-zsh/themes/hshankar.zsh-theme ]; then \
