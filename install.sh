@@ -211,28 +211,43 @@ setup_git_config() {
         exit 1
     fi
     
-    # Check if git config file exists
-    if [[ ! -f "config/git/config" ]]; then
-        log_error "Git config template not found at config/git/config"
+    # Locate the git config template (kept out of the stowed config/ tree so
+    # the placeholder version is never symlinked into ~/.config)
+    local template="$DOTFILES_DIR/install/gitconfig.template"
+    if [[ ! -f "$template" ]]; then
+        log_error "Git config template not found at $template"
         exit 1
     fi
-    
-    # Update git config with user details (using | as delimiter to avoid injection issues)
-    sed -i.bak "s|PLACEHOLDER_NAME|$git_name|" config/git/config || { log_error "Failed to update git name"; exit 1; }
-    sed -i.bak "s|PLACEHOLDER_EMAIL|$git_email|" config/git/config || { log_error "Failed to update git email"; exit 1; }
-    sed -i.bak "s|PLACEHOLDER_GITHUB_USER|$github_user|" config/git/config || { log_error "Failed to update GitHub user"; exit 1; }
-    
+
+    # Generate the user-specific git config in ~/.config/git/config (a real
+    # file, not the tracked template) so the repo stays clean.
+    local target_dir="$HOME/.config/git"
+    local target="$target_dir/config"
+    mkdir -p "$target_dir" || { log_error "Failed to create $target_dir"; exit 1; }
+
+    # Back up an existing real (non-symlink) config before overwriting
+    if [[ -f "$target" && ! -h "$target" ]]; then
+        local backup="$target.bak.$(date +%s)"
+        log_info "Backing up existing git config to $backup"
+        mv "$target" "$backup" || { log_error "Failed to back up git config"; exit 1; }
+    fi
+
+    cp "$template" "$target" || { log_error "Failed to copy git config template"; exit 1; }
+
+    # Substitute user details (using | as delimiter to avoid injection issues)
+    sed -i.bak "s|PLACEHOLDER_NAME|$git_name|" "$target" || { log_error "Failed to set git name"; exit 1; }
+    sed -i.bak "s|PLACEHOLDER_EMAIL|$git_email|" "$target" || { log_error "Failed to set git email"; exit 1; }
+    sed -i.bak "s|PLACEHOLDER_GITHUB_USER|$github_user|" "$target" || { log_error "Failed to set GitHub user"; exit 1; }
+
     # Set OS-appropriate credential helper
     local os=$(detect_os)
-    if [[ "$os" == "macos" ]]; then
-        sed -i.bak "s|helper = osxkeychain|helper = osxkeychain|" config/git/config
-    elif [[ "$os" == "linux" ]]; then
-        sed -i.bak "s|helper = osxkeychain|helper = store|" config/git/config
+    if [[ "$os" == "linux" ]]; then
+        sed -i.bak "s|helper = osxkeychain|helper = store|" "$target"
     fi
-    
-    rm -f config/git/config.bak
-    
-    log_success "Git configuration updated"
+
+    rm -f "$target.bak"
+
+    log_success "Git configuration written to $target"
 }
 
 # Main installation
