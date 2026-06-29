@@ -259,6 +259,39 @@ setup_git_config() {
     log_success "Git configuration written to $target"
 }
 
+# Offer to set zsh as the login shell (skipped in non-interactive mode, or if
+# zsh is missing or already the login shell).
+maybe_change_shell() {
+    [[ "$NON_INTERACTIVE" == "true" ]] && return 0
+
+    local zsh_path
+    zsh_path=$(command -v zsh 2>/dev/null) || { log_warn "zsh not found on PATH; skipping default-shell change"; return 0; }
+
+    local current_shell="${SHELL:-}"
+    if [[ "$current_shell" == "$zsh_path" ]]; then
+        log_info "Login shell is already zsh ($zsh_path)"
+        return 0
+    fi
+
+    echo -n "Set zsh as your default login shell? (y/n): "
+    local answer
+    if ! read -r answer; then
+        log_warn "No input received (EOF); skipping default-shell change"
+        return 0
+    fi
+
+    if [[ "$answer" =~ ^[Yy] ]]; then
+        if command -v chsh >/dev/null 2>&1; then
+            chsh -s "$zsh_path" && log_success "Login shell set to $zsh_path" \
+                || log_warn "Failed to set login shell. Run 'chsh -s $zsh_path' manually."
+        else
+            log_warn "chsh not found; run 'chsh -s $zsh_path' manually to set zsh as your default shell."
+        fi
+    else
+        log_info "Skipping default-shell change (keeping $current_shell)"
+    fi
+}
+
 # Main installation
 main() {
     log_info "Starting dotfiles installation..."
@@ -305,6 +338,9 @@ main() {
     
     log_success "Dotfiles installation completed!"
     log_info "Please restart your terminal or run 'source ~/.zshrc' to apply changes"
+
+    # Offer to switch the default login shell to zsh
+    maybe_change_shell
 }
 
 # Run main function
