@@ -1,7 +1,7 @@
 SHELL = /bin/zsh
 DOTFILES_DIR := $(shell dirname $(realpath $(firstword $(MAKEFILE_LIST))))
-OS := $(shell bin/if-else bin/is-macos macos linux)
-HOMEBREW_PREFIX := $(shell bin/if-else bin/is-macos $(shell bin/if-else bin/is-arm64 /opt/homebrew /usr/local) /home/linuxbrew/.linuxbrew)
+OS := $(shell bin/is-macos >/dev/null 2>&1 && echo macos || echo linux)
+HOMEBREW_PREFIX := $(shell bin/is-macos >/dev/null 2>&1 && (bin/is-arm64 >/dev/null 2>&1 && echo /opt/homebrew || echo /usr/local) || echo /home/linuxbrew/.linuxbrew)
 # export N_PREFIX = $(HOME)/.n
 PATH := $(HOMEBREW_PREFIX)/bin:$(DOTFILES_DIR)/bin:$(PATH)
 # SHELLS := /private/etc/shells
@@ -35,7 +35,7 @@ linux-no-sudo: oh-my-zsh link-no-stow
 
 macos: sudo core-macos packages check-deps link duti
 
-linux: check-deps core-linux link
+linux: core-linux check-deps link
 
 core-macos: oh-my-zsh brew
 
