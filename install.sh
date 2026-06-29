@@ -168,7 +168,10 @@ setup_git_config() {
     else
         while [[ -z "$git_name" ]]; do
             echo -n "Enter your full name: "
-            read -r git_name
+            if ! read -r git_name; then
+                log_error "No input received (EOF). Set GIT_NAME/GIT_EMAIL/GITHUB_USER or run in an interactive terminal."
+                exit 1
+            fi
             if [[ -z "$git_name" ]]; then
                 log_warn "Name cannot be empty. Please try again."
             elif ! validate_git_name "$git_name"; then
@@ -179,7 +182,10 @@ setup_git_config() {
         
         while [[ -z "$git_email" || ! "$git_email" =~ $EMAIL_REGEX ]]; do
             echo -n "Enter your email: "
-            read -r git_email
+            if ! read -r git_email; then
+                log_error "No input received (EOF). Set GIT_NAME/GIT_EMAIL/GITHUB_USER or run in an interactive terminal."
+                exit 1
+            fi
             if [[ -z "$git_email" ]]; then
                 log_warn "Email cannot be empty. Please try again."
             elif [[ ! "$git_email" =~ $EMAIL_REGEX ]]; then
@@ -189,7 +195,10 @@ setup_git_config() {
         
         while [[ -z "$github_user" ]]; do
             echo -n "Enter your GitHub username: "
-            read -r github_user
+            if ! read -r github_user; then
+                log_error "No input received (EOF). Set GIT_NAME/GIT_EMAIL/GITHUB_USER or run in an interactive terminal."
+                exit 1
+            fi
             if [[ -z "$github_user" ]]; then
                 log_warn "GitHub username cannot be empty. Please try again."
             elif ! validate_github_username "$github_user"; then
@@ -276,7 +285,10 @@ main() {
             log_info "Non-interactive mode: defaulting to no-sudo installation"
         else
             echo -n "Do you have sudo privileges? (y/n): "
-            read -r has_sudo
+            if ! read -r has_sudo; then
+                log_error "No input received (EOF). Set SUDO=true|false or run in an interactive terminal."
+                exit 1
+            fi
         fi
         
         if [[ "$has_sudo" =~ ^[FfNn]|false$ ]]; then
