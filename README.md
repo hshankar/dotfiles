@@ -32,8 +32,13 @@ make all
 - **Shell**: Oh My Zsh with custom theme
 - **Package Manager**: Homebrew (macOS) or apt packages (Linux)
 - **CLI Tools**: git, tmux, ripgrep, fzf, etc.
-- **Applications**: VS Code, VLC, Obsidian, TextMate
+- **Applications**: VS Code, VLC, Obsidian (cross-platform); TextMate (macOS only)
 - **Configuration**: Git, Vim, Zsh, Tmux configs
+
+## Platform support
+
+- **macOS**: fully supported (Homebrew + casks, duti defaults, osxkeychain credential helper).
+- **Linux**: supported on **Debian/Ubuntu** (apt). Other distributions (Fedora/RHEL yum/dnf, Arch, Alpine, etc.) are not currently supported by the Makefile's `linux` target, which calls `apt-get` directly. The `linux-no-sudo` target (manual symlinks, no package installs) works on any Linux distro with zsh installed.
 
 ## Automated/Non-Interactive Installation
 
