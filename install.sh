@@ -239,6 +239,12 @@ setup_git_config() {
         local backup="$target.bak.$(date +%s)"
         log_info "Backing up existing git config to $backup"
         mv "$target" "$backup" || { log_error "Failed to back up git config"; exit 1; }
+    elif [[ -h "$target" ]]; then
+        # A symlink (e.g. left over from a previous stow-based install pointing
+        # at config/git/config, which has since moved). It carries no user data
+        # of its own, so just remove it before writing the real file.
+        log_info "Removing existing git config symlink at $target"
+        rm -f "$target" || { log_error "Failed to remove existing git config symlink"; exit 1; }
     fi
 
     cp "$template" "$target" || { log_error "Failed to copy git config template"; exit 1; }
