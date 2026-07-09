@@ -74,6 +74,29 @@ curl -fsSL https://raw.githubusercontent.com/hshankar/dotfiles/main/install.sh |
 - `SUDO` - "true" or "false" for Linux sudo availability
 - `NON_INTERACTIVE` - "true" to skip all prompts
 
+### Multi-user hosts (non-root user after a root install)
+
+The install is per-user: it clones to `~/.dotfiles` and links into `~/`.
+If an administrator ran the install as root, the prerequisites (zsh, stow,
+git, curl) are installed system-wide, but each non-root user still needs to
+run the installer as themselves to get their own shell config. Because the
+prerequisites are already present, a non-root user can run with `SUDO=false`
+(no sudo needed):
+
+```bash
+NON_INTERACTIVE=true SUDO=false \
+GIT_NAME="Your Name" GIT_EMAIL="your@email.com" GITHUB_USER="your-github" \
+curl -fsSL https://raw.githubusercontent.com/hshankar/dotfiles/main/install.sh | bash
+```
+
+The installer detects the already-present tools and skips the package-manager
+step entirely. To set that user's default login shell (which requires sudo or
+root), an administrator runs:
+
+```bash
+sudo chsh -s "$(command -v zsh)" <username>
+```
+
 ## Credits
 
 Credits to webpro at https://github.com/webpro/dotfiles/tree/main for the initial template

@@ -118,7 +118,32 @@ install_prerequisites() {
 # Install Linux prerequisites (zsh, stow, build tooling) via the available
 # package manager. stow is in EPEL on RHEL/CentOS, so epel-release is enabled
 # best-effort there. No system-wide upgrade is performed.
+#
+# If all required tools are already present (e.g. root installed them
+# system-wide on a shared host), skip the package-manager step entirely so a
+# non-root user can run the installer without sudo. If tools are missing and
+# SUDO=false, fail clearly with the list of missing packages rather than
+# attempting a sudo prompt the user can't satisfy.
 install_linux_prerequisites() {
+    local required=(git curl zsh stow)
+    local missing=()
+    for pkg in "${required[@]}"; do
+        command_exists "$pkg" || missing+=("$pkg")
+    done
+
+    if [[ ${#missing[@]} -eq 0 ]]; then
+        log_info "All required tools (git, curl, zsh, stow) already present; skipping package installation"
+        return 0
+    fi
+
+    if [[ "$SUDO" == "false" ]]; then
+        log_error "Missing required tools: ${missing[*]}"
+        log_error "SUDO=false so packages cannot be installed. Ask an administrator to install them system-wide:"
+        log_error "  apt:     sudo apt-get install -y ${missing[*]}"
+        log_error "  dnf/yum: sudo dnf install -y ${missing[*]} (enable epel-release first for stow on RHEL/CentOS)"
+        exit 1
+    fi
+
     local base_pkgs="git curl zsh stow"
     if command_exists apt-get; then
         log_info "Installing dependencies via apt..."
