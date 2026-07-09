@@ -307,14 +307,21 @@ setup_git_config() {
 # Offer to set zsh as the login shell (skipped in non-interactive mode, or if
 # zsh is missing or already the login shell).
 maybe_change_shell() {
-    [[ "$NON_INTERACTIVE" == "true" ]] && return 0
-
     local zsh_path
     zsh_path=$(command -v zsh 2>/dev/null) || { log_warn "zsh not found on PATH; skipping default-shell change"; return 0; }
 
     local current_shell="${SHELL:-}"
     if [[ "$current_shell" == "$zsh_path" ]]; then
         log_info "Login shell is already zsh ($zsh_path)"
+        return 0
+    fi
+
+    # Non-interactive runs can't prompt; print the exact command to run.
+    if [[ "$NON_INTERACTIVE" == "true" ]]; then
+        log_warn "Non-interactive mode: skipping default-shell change."
+        log_warn "To make zsh your default login shell, run:"
+        log_warn "  sudo chsh -s $zsh_path $USER"
+        log_warn "Then log out and back in."
         return 0
     fi
 
