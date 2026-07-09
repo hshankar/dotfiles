@@ -64,6 +64,7 @@ link:
 	stow -t $(XDG_CONFIG_HOME) config || { echo "Failed to stow config"; exit 1; }
 	@mkdir -p $(HOME)/.oh-my-zsh/custom || { echo "Failed to create oh-my-zsh custom directory"; exit 1; }
 	stow -t $(HOME)/.oh-my-zsh/custom oh-my-zsh || { echo "Failed to stow oh-my-zsh"; exit 1; }
+	@mkdir -p $(HOME)/.vim || { echo "Failed to create vim directory"; exit 1; }
 	stow -t $(HOME)/.vim vim || { echo "Failed to stow vim"; exit 1; }
 	@mkdir -p $(HOME)/.local/runtime
 	@chmod 700 $(HOME)/.local/runtime
