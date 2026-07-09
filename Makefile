@@ -10,6 +10,16 @@ export XDG_CONFIG_HOME = $(HOME)/.config
 export STOW_DIR = $(DOTFILES_DIR)
 export ACCEPT_EULA=Y
 
+# All targets are recipe-based (none produce a file artifact). Mark them
+# .PHONY so make always runs them. This is critical for `oh-my-zsh`, which
+# collides with the repo's own oh-my-zsh/ directory (the themes dir) —
+# without .PHONY, make sees the directory and declares the target
+# "up to date", so the installer never runs.
+.PHONY: all macos linux core-macos core-linux sudo packages \
+        link link-no-stow unlink brew oh-my-zsh brew-packages cask-apps \
+        duti check-deps ensure-bin-executable minimal packages-only \
+        config-only linux-no-sudo
+
 # Check if required commands exist
 check-deps: ensure-bin-executable
 	@echo "Checking dependencies..."
@@ -141,7 +151,11 @@ brew:
 	fi
 
 oh-my-zsh:
-	@if [ ! -d $(HOME)/.oh-my-zsh ]; then \
+	@if [ ! -f $(HOME)/.oh-my-zsh/oh-my-zsh.sh ]; then \
+		if [ -d $(HOME)/.oh-my-zsh ]; then \
+			echo "~/.oh-my-zsh exists but is incomplete (oh-my-zsh.sh missing); removing and reinstalling..."; \
+			rm -rf $(HOME)/.oh-my-zsh || { echo "Failed to remove incomplete ~/.oh-my-zsh"; exit 1; }; \
+		fi; \
 		echo "Installing Oh My Zsh..."; \
 		temp_script=$$(mktemp) || { echo "Failed to create temporary file"; exit 1; }; \
 		test -n "$$temp_script" || { echo "Empty temporary file path"; exit 1; }; \
