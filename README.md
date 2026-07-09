@@ -51,16 +51,15 @@ make all
 For CI/CD, Docker, or other automated environments:
 
 ```bash
-# Set environment variables for Git config
+# Enable non-interactive mode
+export NON_INTERACTIVE="true"
+
+# Git identity is optional; set these only if you want it configured now.
 export GIT_NAME="Your Name"
 export GIT_EMAIL="your@email.com"
-export GITHUB_USER="your-github-username"
 
 # For Linux: specify sudo availability
 export SUDO="true"   # or "false" for no sudo
-
-# Enable non-interactive mode
-export NON_INTERACTIVE="true"
 
 # Run installation
 curl -fsSL https://raw.githubusercontent.com/hshankar/dotfiles/main/install.sh | bash
@@ -68,11 +67,14 @@ curl -fsSL https://raw.githubusercontent.com/hshankar/dotfiles/main/install.sh |
 
 ### Environment Variables:
 
-- `GIT_NAME` - Your full name for Git config
-- `GIT_EMAIL` - Your email for Git config  
-- `GITHUB_USER` - Your GitHub username
-- `SUDO` - "true" or "false" for Linux sudo availability
 - `NON_INTERACTIVE` - "true" to skip all prompts
+- `GIT_NAME` - (optional) Your full name for Git config
+- `GIT_EMAIL` - (optional) Your email for Git config
+- `SUDO` - "true" or "false" for Linux sudo availability
+
+Git identity is optional: if not provided (and non-interactive), the shared git
+config is still installed and a reminder is printed. Set it later with
+`git config --global user.name` / `user.email`. (`GITHUB_USER` is no longer used.)
 
 ### Multi-user hosts (non-root user after a root install)
 
@@ -85,7 +87,7 @@ prerequisites are already present, a non-root user can run with `SUDO=false`
 
 ```bash
 export NON_INTERACTIVE=true SUDO=false \
-       GIT_NAME="Your Name" GIT_EMAIL="your@email.com" GITHUB_USER="your-github"
+       GIT_NAME="Your Name" GIT_EMAIL="your@email.com"
 curl -fsSL https://raw.githubusercontent.com/hshankar/dotfiles/main/install.sh | bash
 ```
 

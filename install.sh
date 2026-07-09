@@ -36,12 +36,6 @@ log_error() {
 # unless the caller has explicitly opted into non-interactive mode.
 require_interactive_stdin() {
     [[ "$NON_INTERACTIVE" == "true" ]] && return 0
-    # If all git config env vars are present, no interactive prompts are
-    # needed for git setup; allow the run to proceed (sudo/chsh still guard
-    # themselves).
-    if [[ -n "$GIT_NAME" && -n "$GIT_EMAIL" && -n "$GITHUB_USER" ]]; then
-        return 0
-    fi
     if [[ ! -t 0 ]]; then
         log_error "This installer is interactive but stdin is not a terminal"
         log_error "(this happens with 'curl ... | bash')."
@@ -50,13 +44,12 @@ require_interactive_stdin() {
         log_error "  1. Download then run so prompts can read your terminal:"
         log_error "     curl -fsSL https://raw.githubusercontent.com/hshankar/dotfiles/main/install.sh -o /tmp/df-install.sh && bash /tmp/df-install.sh"
         log_error ""
-        log_error "  2. Or run non-interactively by exporting these environment variables:"
-        log_error "     export NON_INTERACTIVE=true GIT_NAME='Your Name' GIT_EMAIL='you@example.com' GITHUB_USER='you' SUDO=true"
+        log_error "  2. Or run non-interactively (identity is optional):"
+        log_error "     export NON_INTERACTIVE=true"
         log_error "     curl -fsSL https://raw.githubusercontent.com/hshankar/dotfiles/main/install.sh | bash"
         log_error ""
-        log_error "     (The vars must be exported — or placed before 'bash',"
-        log_error "      not before 'curl' — because 'VAR=val curl | bash' sets them"
-        log_error "      only for curl, which ignores them.)"
+        log_error "     (Vars must be exported, or placed before 'bash' not 'curl',"
+        log_error "      because 'VAR=val curl | bash' sets them only for curl.)"
         exit 1
     fi
 }
@@ -184,112 +177,62 @@ setup_dotfiles() {
     fi
 }
 
-# Setup git configuration (supports env vars for automation)
-# Input validation functions
+# Git identity is optional: if GIT_NAME/GIT_EMAIL env vars are provided they
+# are used (and validated); otherwise an interactive prompt is offered when
+# stdin is a terminal. If no identity is available, the shared git config is
+# still installed and a reminder is printed. GITHUB_USER is no longer used
+# (the [github] section was vestigial).
 readonly EMAIL_REGEX='^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$'
 
 validate_git_name() {
     local name="$1"
     # Allow letters, numbers, spaces, hyphens, apostrophes, periods
-    if [[ ! "$name" =~ ^[A-Za-z0-9[:space:]\.\'-]+$ ]]; then
-        return 1
-    fi
-    return 0
+    [[ "$name" =~ ^[A-Za-z0-9[:space:]\.\'-]+$ ]]
 }
 
-validate_github_username() {
-    local username="$1"
-    # GitHub usernames can only contain alphanumeric characters and hyphens
-    if [[ ! "$username" =~ ^[A-Za-z0-9\-]+$ ]]; then
-        return 1
-    fi
-    return 0
-}
+# Prompt for an optional value via a global; inlined at call sites because
+# bash 3.2 (macOS /bin/bash) has no namerefs.
 
 setup_git_config() {
     log_info "Setting up Git configuration..."
-    
-    # Use environment variables if available, otherwise prompt
-    if [[ -n "$GIT_NAME" && -n "$GIT_EMAIL" && -n "$GITHUB_USER" ]]; then
-        git_name="$GIT_NAME"
-        git_email="$GIT_EMAIL"
-        github_user="$GITHUB_USER"
-        
-        # Validate environment variables
-        if ! validate_git_name "$git_name"; then
-            log_error "Invalid GIT_NAME environment variable: contains invalid characters"
-            exit 1
-        fi
-        if ! validate_github_username "$github_user"; then
-            log_error "Invalid GITHUB_USER environment variable: contains invalid characters"
-            exit 1
-        fi
-        if [[ ! "$git_email" =~ $EMAIL_REGEX ]]; then
-            log_error "Invalid GIT_EMAIL environment variable: invalid email format"
-            exit 1
-        fi
-        log_info "Using environment variables for Git config"
-    elif [[ "$NON_INTERACTIVE" == "true" ]]; then
-        log_warn "Non-interactive mode but no Git environment variables set"
-        log_warn "Skipping Git configuration - you'll need to set it manually later"
-        return 0
-    else
-        while [[ -z "$git_name" ]]; do
-            echo -n "Enter your full name: "
-            if ! read -r git_name; then
-                log_error "No input received (EOF). Set GIT_NAME/GIT_EMAIL/GITHUB_USER or run in an interactive terminal."
-                exit 1
-            fi
-            if [[ -z "$git_name" ]]; then
-                log_warn "Name cannot be empty. Please try again."
-            elif ! validate_git_name "$git_name"; then
-                log_warn "Name contains invalid characters. Please use only letters, numbers, spaces, hyphens, apostrophes, and periods."
-                git_name=""
-            fi
-        done
-        
-        while [[ -z "$git_email" || ! "$git_email" =~ $EMAIL_REGEX ]]; do
-            echo -n "Enter your email: "
-            if ! read -r git_email; then
-                log_error "No input received (EOF). Set GIT_NAME/GIT_EMAIL/GITHUB_USER or run in an interactive terminal."
-                exit 1
-            fi
-            if [[ -z "$git_email" ]]; then
-                log_warn "Email cannot be empty. Please try again."
-            elif [[ ! "$git_email" =~ $EMAIL_REGEX ]]; then
-                log_warn "Invalid email format. Please enter a valid email address."
-            fi
-        done
-        
-        while [[ -z "$github_user" ]]; do
-            echo -n "Enter your GitHub username: "
-            if ! read -r github_user; then
-                log_error "No input received (EOF). Set GIT_NAME/GIT_EMAIL/GITHUB_USER or run in an interactive terminal."
-                exit 1
-            fi
-            if [[ -z "$github_user" ]]; then
-                log_warn "GitHub username cannot be empty. Please try again."
-            elif ! validate_github_username "$github_user"; then
-                log_warn "GitHub username contains invalid characters. Please use only letters, numbers, and hyphens."
-                github_user=""
-            fi
-        done
-    fi
-    
-    # Validate inputs
-    if [[ -z "$git_name" || -z "$git_email" || -z "$github_user" ]]; then
-        log_error "Git configuration values cannot be empty"
+
+    # Resolve identity from env vars (optional, validated).
+    git_name="${GIT_NAME:-}"
+    git_email="${GIT_EMAIL:-}"
+    if [[ -n "$git_name" ]] && ! validate_git_name "$git_name"; then
+        log_error "Invalid GIT_NAME environment variable: contains invalid characters"
         exit 1
     fi
-    
-    # Validate email format
-    if [[ ! "$git_email" =~ $EMAIL_REGEX ]]; then
-        log_error "Invalid email format: $git_email"
+    if [[ -n "$git_email" ]] && [[ ! "$git_email" =~ $EMAIL_REGEX ]]; then
+        log_error "Invalid GIT_EMAIL environment variable: invalid email format"
         exit 1
     fi
-    
+
+    # If no identity from env and we have a terminal, prompt (skip allowed).
+    # NON_INTERACTIVE still gates this here; the flag is removed in a follow-up.
+    if [[ -z "$git_name" && -z "$git_email" && "$NON_INTERACTIVE" != "true" && -t 0 ]]; then
+        echo -n "Enter your full name (enter to skip): "
+        if ! read -r git_name; then
+            log_error "No input received (EOF). Set GIT_NAME/GIT_EMAIL env vars or run in an interactive terminal."
+            exit 1
+        fi
+        if [[ -n "$git_name" ]] && ! validate_git_name "$git_name"; then
+            log_warn "Name contains invalid characters; skipping."
+            git_name=""
+        fi
+        echo -n "Enter your email (enter to skip): "
+        if ! read -r git_email; then
+            log_error "No input received (EOF). Set GIT_NAME/GIT_EMAIL env vars or run in an interactive terminal."
+            exit 1
+        fi
+        if [[ -n "$git_email" ]] && [[ ! "$git_email" =~ $EMAIL_REGEX ]]; then
+            log_warn "Invalid email format; skipping."
+            git_email=""
+        fi
+    fi
+
     # Locate the git config template (kept out of the stowed config/ tree so
-    # the placeholder version is never symlinked into ~/.config)
+    # the placeholder version is never symlinked into ~/.config).
     local template="$DOTFILES_DIR/install/gitconfig.template"
     if [[ ! -f "$template" ]]; then
         log_error "Git config template not found at $template"
@@ -302,33 +245,47 @@ setup_git_config() {
     local target="$target_dir/config"
     mkdir -p "$target_dir" || { log_error "Failed to create $target_dir"; exit 1; }
 
-    # Back up an existing real (non-symlink) config before overwriting
+    # Preserve any existing identity so re-runs without GIT_* don't wipe it.
+    local prev_name prev_email
+    prev_name=$(git config --file "$target" user.name 2>/dev/null || true)
+    prev_email=$(git config --file "$target" user.email 2>/dev/null || true)
+
+    # Back up an existing real (non-symlink) config before overwriting.
     if [[ -f "$target" && ! -h "$target" ]]; then
         local backup="$target.bak.$(date +%s)"
         log_info "Backing up existing git config to $backup"
         mv "$target" "$backup" || { log_error "Failed to back up git config"; exit 1; }
     elif [[ -h "$target" ]]; then
-        # A symlink (e.g. left over from a previous stow-based install pointing
-        # at config/git/config, which has since moved). It carries no user data
-        # of its own, so just remove it before writing the real file.
+        # A symlink left over from a previous stow-based install pointing at
+        # config/git/config, which has since moved. Remove it before writing.
         log_info "Removing existing git config symlink at $target"
         rm -f "$target" || { log_error "Failed to remove existing git config symlink"; exit 1; }
     fi
 
     cp "$template" "$target" || { log_error "Failed to copy git config template"; exit 1; }
 
-    # Substitute user details (using | as delimiter to avoid injection issues)
-    sed -i.bak "s|PLACEHOLDER_NAME|$git_name|" "$target" || { log_error "Failed to set git name"; exit 1; }
-    sed -i.bak "s|PLACEHOLDER_EMAIL|$git_email|" "$target" || { log_error "Failed to set git email"; exit 1; }
-    sed -i.bak "s|PLACEHOLDER_GITHUB_USER|$github_user|" "$target" || { log_error "Failed to set GitHub user"; exit 1; }
-
     # Set OS-appropriate credential helper
     local os=$(detect_os)
     if [[ "$os" == "linux" ]]; then
         sed -i.bak "s|helper = osxkeychain|helper = store|" "$target"
+        rm -f "$target.bak"
     fi
 
-    rm -f "$target.bak"
+    # Layer identity on top: provided > preserved. Written via git config so
+    # the [user] section is created only when there's something to set.
+    local final_name="${git_name:-$prev_name}"
+    local final_email="${git_email:-$prev_email}"
+    if [[ -n "$final_name" ]]; then
+        git config --file "$target" user.name "$final_name" || { log_warn "Failed to set user.name"; }
+    fi
+    if [[ -n "$final_email" ]]; then
+        git config --file "$target" user.email "$final_email" || { log_warn "Failed to set user.email"; }
+    fi
+    if [[ -z "$final_name" || -z "$final_email" ]]; then
+        log_warn "Git identity not set. To set it later, run:"
+        log_warn "  git config --global user.name 'Your Name'"
+        log_warn "  git config --global user.email 'you@example.com'"
+    fi
 
     log_success "Git configuration written to $target"
 }
