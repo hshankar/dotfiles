@@ -1,9 +1,6 @@
-#!/bin/zsh
+#!/bin/sh
 
-## This script is used to determine if the current Mac is ARM64 (Apple Silicon). It returns 0 if it is, 1 if it is not.
+# Returns 0 if the current machine is arm64 (Apple Silicon), 1 otherwise.
+# POSIX sh so the Makefile can invoke this at parse time on any host.
 
-if [[ "$(uname -m)" == "arm64" ]]; then
-  exit 0
-else
-  exit 1
-fi
+[ "$(uname -m)" = "arm64" ] && exit 0 || exit 1

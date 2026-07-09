@@ -1,9 +1,10 @@
-#!/bin/zsh
+#!/bin/sh
 
-## This script is used to determine if the current OS is macOS. It returns 0 if it is, 1 if it is not.
+# Returns 0 if the current OS is macOS, 1 if it is not.
+# Uses uname -s (POSIX) so this works on hosts that don't have zsh yet —
+# the Makefile invokes it at parse time via $(shell ...).
 
-if [[ "$OSTYPE" =~ ^darwin ]]; then
-  exit 0
-else
-  exit 1
-fi
+case "$(uname -s)" in
+    Darwin) exit 0 ;;
+    *) exit 1 ;;
+esac

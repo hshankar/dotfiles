@@ -1,9 +1,10 @@
-#!/bin/zsh
+#!/bin/sh
 
-## This script takes one argument: a command to run. If the command succeeds, it exits with 0; if it fails, it exits with 1.
+# Returns 0 if the given command is executable, 1 otherwise.
+# POSIX sh so the Makefile can invoke this at parse time on any host.
 
-if type "$1" >/dev/null 2>&1; then
-  exit 0
+if command -v "$1" >/dev/null 2>&1; then
+    exit 0
 else
-  exit 1
+    exit 1
 fi
