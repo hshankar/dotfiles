@@ -50,8 +50,20 @@ linux: core-linux check-deps link
 core-macos: oh-my-zsh brew
 
 core-linux: oh-my-zsh 
-	sudo apt-get update
-	sudo apt-get -y install stow
+	@# Install stow via the available package manager. On RHEL/CentOS, stow
+	@# lives in EPEL, so enable epel-release first (best-effort).
+	@if command -v apt-get >/dev/null 2>&1; then \
+		sudo apt-get update || { echo "apt-get update failed"; exit 1; }; \
+		sudo apt-get -y install stow || { echo "Failed to install stow"; exit 1; }; \
+	elif command -v dnf >/dev/null 2>&1; then \
+		sudo dnf install -y epel-release 2>/dev/null || true; \
+		sudo dnf install -y stow || { echo "Failed to install stow (stow is in EPEL on RHEL/CentOS)"; exit 1; }; \
+	elif command -v yum >/dev/null 2>&1; then \
+		sudo yum install -y epel-release 2>/dev/null || true; \
+		sudo yum install -y stow || { echo "Failed to install stow (stow is in EPEL on RHEL/CentOS)"; exit 1; }; \
+	else \
+		echo "Error: no supported package manager (apt/dnf/yum) found"; exit 1; \
+	fi
 
 sudo:
 	@echo "Requesting sudo access (required for some operations)..."
