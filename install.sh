@@ -315,11 +315,28 @@ maybe_change_shell() {
     fi
 
     if [[ "$answer" =~ ^[Yy] ]]; then
-        if command -v chsh >/dev/null 2>&1; then
-            chsh -s "$zsh_path" && log_success "Login shell set to $zsh_path" \
-                || log_warn "Failed to set login shell. Run 'chsh -s $zsh_path' manually."
-        else
+        if ! command -v chsh >/dev/null 2>&1; then
             log_warn "chsh not found; run 'chsh -s $zsh_path' manually to set zsh as your default shell."
+            return 0
+        fi
+        local os; os=$(detect_os)
+        if [[ "$os" == "linux" ]] && sudo -n true 2>/dev/null; then
+            # sudo credentials are cached from the install (make linux ran
+            # sudo apt-get moments ago). Running chsh as root sets the shell
+            # without PAM password auth, which otherwise fails on hosts where
+            # the user authenticates by SSH key only (no usable password) —
+            # e.g. default Azure/cloud VM users.
+            if sudo chsh -s "$zsh_path" "$USER"; then
+                log_success "Login shell set to $zsh_path"
+            else
+                log_warn "Failed to set login shell. Run 'sudo chsh -s $zsh_path $USER' manually."
+            fi
+        elif chsh -s "$zsh_path"; then
+            # macOS, or Linux without cached sudo creds: chsh prompts for the
+            # user's login password (normal flow).
+            log_success "Login shell set to $zsh_path"
+        else
+            log_warn "Failed to set login shell. On Linux run 'sudo chsh -s $zsh_path $USER'; on macOS run 'chsh -s $zsh_path'."
         fi
     else
         log_info "Skipping default-shell change (keeping $current_shell)"
