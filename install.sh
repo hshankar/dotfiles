@@ -105,24 +105,35 @@ install_prerequisites() {
         fi
         
     elif [[ "$os" == "linux" ]]; then
-        # Update package manager
-        if command_exists apt-get; then
-            log_info "Updating package manager and installing dependencies..."
-            sudo apt-get update || { log_error "Failed to update apt package list"; exit 1; }
-            sudo apt-get install -y git curl build-essential zsh stow || { log_error "Failed to install required packages"; exit 1; }
-        elif command_exists yum; then
-            log_info "Updating package manager and installing dependencies..."
-            sudo yum update -y || { log_error "Failed to update yum packages"; exit 1; }
-            sudo yum install -y git curl gcc gcc-c++ make zsh stow || { log_error "Failed to install required packages"; exit 1; }
-        else
-            log_error "Unsupported Linux distribution - neither apt-get nor yum found"
-            exit 1
-        fi
+        install_linux_prerequisites
     fi
     
     # Ensure git is installed
     if ! command_exists git; then
         log_error "Git is required but not installed"
+        exit 1
+    fi
+}
+
+# Install Linux prerequisites (zsh, stow, build tooling) via the available
+# package manager. stow is in EPEL on RHEL/CentOS, so epel-release is enabled
+# best-effort there. No system-wide upgrade is performed.
+install_linux_prerequisites() {
+    local base_pkgs="git curl zsh stow"
+    if command_exists apt-get; then
+        log_info "Installing dependencies via apt..."
+        sudo apt-get update || { log_error "Failed to update apt package list"; exit 1; }
+        sudo apt-get install -y $base_pkgs build-essential || { log_error "Failed to install required packages"; exit 1; }
+    elif command_exists dnf; then
+        log_info "Installing dependencies via dnf..."
+        sudo dnf install -y epel-release 2>/dev/null || true
+        sudo dnf install -y $base_pkgs gcc gcc-c++ make || { log_error "Failed to install required packages (stow is in EPEL on RHEL/CentOS)"; exit 1; }
+    elif command_exists yum; then
+        log_info "Installing dependencies via yum..."
+        sudo yum install -y epel-release 2>/dev/null || true
+        sudo yum install -y $base_pkgs gcc gcc-c++ make || { log_error "Failed to install required packages (stow is in EPEL on RHEL/CentOS)"; exit 1; }
+    else
+        log_error "Unsupported Linux distribution - no apt-get/dnf/yum found"
         exit 1
     fi
 }
@@ -326,6 +337,11 @@ maybe_change_shell() {
             # without PAM password auth, which otherwise fails on hosts where
             # the user authenticates by SSH key only (no usable password) —
             # e.g. default Azure/cloud VM users.
+            # On RHEL/CentOS, chsh refuses shells not listed in /etc/shells.
+            # The zsh package usually adds it, but ensure it defensively.
+            if ! grep -qx "$zsh_path" /etc/shells 2>/dev/null; then
+                echo "$zsh_path" | sudo tee -a /etc/shells >/dev/null 2>/dev/null || true
+            fi
             if sudo chsh -s "$zsh_path" "$USER"; then
                 log_success "Login shell set to $zsh_path"
             else
