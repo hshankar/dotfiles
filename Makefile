@@ -187,4 +187,4 @@ cask-apps: brew
 	@brew bundle --file=$(DOTFILES_DIR)/install/Caskfile || { echo "Some cask apps failed to install, continuing..."; }
 
 duti:
-	duti -v $(DOTFILES_DIR)/install/duti
+	@duti -v $(DOTFILES_DIR)/install/duti || { echo "Warning: duti failed (some default apps may not be set); continuing"; }
