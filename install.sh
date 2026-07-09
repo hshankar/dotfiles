@@ -29,6 +29,34 @@ log_error() {
     echo -e "${RED}[ERROR]${NC} $1"
 }
 
+# Detect non-interactive stdin (e.g. `curl ... | bash`). When bash reads the
+# script from a pipe, stdin is not a terminal and the interactive prompts
+# (git name/email, sudo, chsh) would all hit EOF. Rather than failing
+# partway through after cloning, bail out early with actionable guidance
+# unless the caller has explicitly opted into non-interactive mode.
+require_interactive_stdin() {
+    [[ "$NON_INTERACTIVE" == "true" ]] && return 0
+    # If all git config env vars are present, no interactive prompts are
+    # needed for git setup; allow the run to proceed (sudo/chsh still guard
+    # themselves).
+    if [[ -n "$GIT_NAME" && -n "$GIT_EMAIL" && -n "$GITHUB_USER" ]]; then
+        return 0
+    fi
+    if [[ ! -t 0 ]]; then
+        log_error "This installer is interactive but stdin is not a terminal"
+        log_error "(this happens with 'curl ... | bash')."
+        log_error ""
+        log_error "Either:"
+        log_error "  1. Download then run so prompts can read your terminal:"
+        log_error "     curl -fsSL https://raw.githubusercontent.com/hshankar/dotfiles/main/install.sh -o /tmp/df-install.sh && bash /tmp/df-install.sh"
+        log_error ""
+        log_error "  2. Or run non-interactively by exporting these environment variables:"
+        log_error "     NON_INTERACTIVE=true GIT_NAME='Your Name' GIT_EMAIL='you@example.com' GITHUB_USER='you' SUDO=true"
+        log_error "     curl -fsSL https://raw.githubusercontent.com/hshankar/dotfiles/main/install.sh | bash"
+        exit 1
+    fi
+}
+
 # Check if command exists
 command_exists() {
     command -v "$1" >/dev/null 2>&1
@@ -301,7 +329,10 @@ maybe_change_shell() {
 # Main installation
 main() {
     log_info "Starting dotfiles installation..."
-    
+
+    # Refuse to run interactively when stdin isn't a terminal (curl|bash).
+    require_interactive_stdin
+
     # Install prerequisites
     install_prerequisites
     

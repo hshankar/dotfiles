@@ -3,8 +3,14 @@
 ## One-line installation (recommended for new hosts):
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/hshankar/dotfiles/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/hshankar/dotfiles/main/install.sh -o /tmp/df-install.sh && bash /tmp/df-install.sh
 ```
+
+> Note: download-then-run (rather than `curl … | bash`) so the installer's
+> interactive prompts (git name/email, sudo, default shell) can read from
+> your terminal. If you prefer a fully non-interactive run, set the
+> environment variables documented under [Automated/Non-Interactive
+> Installation](#automatednon-interactive-installation) instead.
 
 ## Manual installation:
 
