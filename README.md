@@ -84,10 +84,14 @@ prerequisites are already present, a non-root user can run with `SUDO=false`
 (no sudo needed):
 
 ```bash
-NON_INTERACTIVE=true SUDO=false \
-GIT_NAME="Your Name" GIT_EMAIL="your@email.com" GITHUB_USER="your-github" \
+export NON_INTERACTIVE=true SUDO=false \
+       GIT_NAME="Your Name" GIT_EMAIL="your@email.com" GITHUB_USER="your-github"
 curl -fsSL https://raw.githubusercontent.com/hshankar/dotfiles/main/install.sh | bash
 ```
+
+> The variables must be `export`ed (or placed before `bash`, not `curl`) so the
+> `bash` running the script inherits them — `VAR=val curl ... | bash` sets them
+> only for `curl`, which ignores them.
 
 The installer detects the already-present tools and skips the package-manager
 step entirely. To set that user's default login shell (which requires sudo or

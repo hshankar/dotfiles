@@ -51,8 +51,12 @@ require_interactive_stdin() {
         log_error "     curl -fsSL https://raw.githubusercontent.com/hshankar/dotfiles/main/install.sh -o /tmp/df-install.sh && bash /tmp/df-install.sh"
         log_error ""
         log_error "  2. Or run non-interactively by exporting these environment variables:"
-        log_error "     NON_INTERACTIVE=true GIT_NAME='Your Name' GIT_EMAIL='you@example.com' GITHUB_USER='you' SUDO=true"
+        log_error "     export NON_INTERACTIVE=true GIT_NAME='Your Name' GIT_EMAIL='you@example.com' GITHUB_USER='you' SUDO=true"
         log_error "     curl -fsSL https://raw.githubusercontent.com/hshankar/dotfiles/main/install.sh | bash"
+        log_error ""
+        log_error "     (The vars must be exported — or placed before 'bash',"
+        log_error "      not before 'curl' — because 'VAR=val curl | bash' sets them"
+        log_error "      only for curl, which ignores them.)"
         exit 1
     fi
 }
