@@ -6,11 +6,11 @@
 curl -fsSL https://raw.githubusercontent.com/hshankar/dotfiles/main/install.sh -o /tmp/df-install.sh && bash /tmp/df-install.sh
 ```
 
-> Note: download-then-run (rather than `curl … | bash`) so the installer's
-> interactive prompts (git name/email, sudo, default shell) can read from
-> your terminal. If you prefer a fully non-interactive run, set the
-> environment variables documented under [Automated/Non-Interactive
-> Installation](#automatednon-interactive-installation) instead.
+> Note: download-then-run gives you the interactive prompts (git identity,
+> sudo password, default shell). `curl … | bash` also works — it runs
+> non-interactively with sensible defaults (identity left unset, sudo
+> auto-detected, default shell unchanged with a hint printed). See
+> [Automated/Non-Interactive Installation](#automatednon-interactive-installation).
 
 ## Manual installation:
 
@@ -44,38 +44,39 @@ make all
 ## Platform support
 
 - **macOS**: fully supported (Homebrew + casks, duti defaults, osxkeychain credential helper).
-- **Linux**: supported on **Debian/Ubuntu** (apt). Other distributions (Fedora/RHEL yum/dnf, Arch, Alpine, etc.) are not currently supported by the Makefile's `linux` target, which calls `apt-get` directly. The `linux-no-sudo` target (manual symlinks, no package installs) works on any Linux distro with zsh installed.
+- **Linux**: supported on **Debian/Ubuntu** (apt), **Fedora/RHEL/CentOS** (dnf/yum). stow is in EPEL on RHEL/CentOS and is enabled automatically. The `linux-no-sudo` target (manual symlinks, no package installs) is used automatically when sudo is unavailable, and works on any Linux distro with zsh installed.
 
 ## Automated/Non-Interactive Installation
 
-For CI/CD, Docker, or other automated environments:
+For CI/CD, Docker, or other automated environments, pipe straight into bash —
+it runs non-interactively with sensible defaults (no flags required):
 
 ```bash
-# Enable non-interactive mode
-export NON_INTERACTIVE="true"
-
-# Git identity is optional; set these only if you want it configured now.
-export GIT_NAME="Your Name"
-export GIT_EMAIL="your@email.com"
-
-# Run installation
 curl -fsSL https://raw.githubusercontent.com/hshankar/dotfiles/main/install.sh | bash
 ```
 
+Git identity is optional. Set it only if you want it configured during install;
+otherwise the shared git config is still installed and a reminder is printed
+(set it later with `git config --global user.name` / `user.email`).
+
+```bash
+export GIT_NAME="Your Name" GIT_EMAIL="your@email.com"
+curl -fsSL https://raw.githubusercontent.com/hshankar/dotfiles/main/install.sh | bash
+```
+
+> The variables must be `export`ed (or placed before `bash`, not `curl`) so the
+> `bash` running the script inherits them — `VAR=val curl ... | bash` sets them
+> only for `curl`, which ignores them.
+
 ### Environment Variables:
 
-- `NON_INTERACTIVE` - "true" to skip all prompts
 - `GIT_NAME` - (optional) Your full name for Git config
 - `GIT_EMAIL` - (optional) Your email for Git config
 
-Git identity is optional: if not provided (and non-interactive), the shared git
-config is still installed and a reminder is printed. Set it later with
-`git config --global user.name` / `user.email`. (`GITHUB_USER` is no longer used.)
-
-On Linux, sudo is auto-detected: if passwordless sudo is available (or stdin is
-a terminal where `sudo` can prompt for a password), the full installation runs
-(including `apt`/`dnf`/`yum` package installs); otherwise a no-sudo path
-(manual symlinks, no package installs) is used. There is no `SUDO` flag.
+There are no `NON_INTERACTIVE` or `SUDO` flags: interactivity is detected from
+whether stdin is a terminal, and sudo is auto-detected via `sudo -n true`
+(full install with package installs if usable or if a terminal is available
+for a sudo password prompt; otherwise a no-sudo manual-symlink path).
 
 ### Multi-user hosts (non-root user after a root install)
 
@@ -87,15 +88,14 @@ prerequisites are already present, a non-root user can run without any sudo
 (sudo is auto-detected; without it, the no-sudo install path is used):
 
 ```bash
-export NON_INTERACTIVE=true \
-       GIT_NAME="Your Name" GIT_EMAIL="your@email.com"
+export GIT_NAME="Your Name" GIT_EMAIL="your@email.com"
 curl -fsSL https://raw.githubusercontent.com/hshankar/dotfiles/main/install.sh | bash
 ```
 
-> The variables must be `export`ed (or placed before `bash`, not `curl`) so the
-> `bash` running the script inherits them — `VAR=val curl ... | bash` sets them
-> only for `curl`, which ignores them. On Linux, sudo is auto-detected; a
-> non-root user without sudo automatically gets the no-sudo install path.
+> On Linux, sudo is auto-detected; a non-root user without sudo automatically
+> gets the no-sudo install path (manual symlinks). The variables must be
+> `export`ed (or placed before `bash`, not `curl`) so the `bash` running the
+> script inherits them.
 
 The installer detects the already-present tools and skips the package-manager
 step entirely. To set that user's default login shell (which requires sudo or

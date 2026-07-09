@@ -29,28 +29,13 @@ log_error() {
     echo -e "${RED}[ERROR]${NC} $1"
 }
 
-# Detect non-interactive stdin (e.g. `curl ... | bash`). When bash reads the
-# script from a pipe, stdin is not a terminal and the interactive prompts
-# (git name/email, sudo, chsh) would all hit EOF. Rather than failing
-# partway through after cloning, bail out early with actionable guidance
-# unless the caller has explicitly opted into non-interactive mode.
-require_interactive_stdin() {
-    [[ "$NON_INTERACTIVE" == "true" ]] && return 0
+# When stdin isn't a terminal (e.g. `curl ... | bash`), interactive prompts
+# are skipped in favor of sensible defaults: git identity is left unset (with
+# a reminder), sudo is auto-detected, and the default-shell change is skipped
+# (with the exact command printed). Print one info line so the run isn't silent.
+note_if_piped() {
     if [[ ! -t 0 ]]; then
-        log_error "This installer is interactive but stdin is not a terminal"
-        log_error "(this happens with 'curl ... | bash')."
-        log_error ""
-        log_error "Either:"
-        log_error "  1. Download then run so prompts can read your terminal:"
-        log_error "     curl -fsSL https://raw.githubusercontent.com/hshankar/dotfiles/main/install.sh -o /tmp/df-install.sh && bash /tmp/df-install.sh"
-        log_error ""
-        log_error "  2. Or run non-interactively (identity is optional):"
-        log_error "     export NON_INTERACTIVE=true"
-        log_error "     curl -fsSL https://raw.githubusercontent.com/hshankar/dotfiles/main/install.sh | bash"
-        log_error ""
-        log_error "     (Vars must be exported, or placed before 'bash' not 'curl',"
-        log_error "      because 'VAR=val curl | bash' sets them only for curl.)"
-        exit 1
+        log_info "stdin is not a terminal; running non-interactively (prompts skipped, defaults used)."
     fi
 }
 
@@ -210,8 +195,7 @@ setup_git_config() {
     fi
 
     # If no identity from env and we have a terminal, prompt (skip allowed).
-    # NON_INTERACTIVE still gates this here; the flag is removed in a follow-up.
-    if [[ -z "$git_name" && -z "$git_email" && "$NON_INTERACTIVE" != "true" && -t 0 ]]; then
+    if [[ -z "$git_name" && -z "$git_email" && -t 0 ]]; then
         echo -n "Enter your full name (enter to skip): "
         if ! read -r git_name; then
             log_error "No input received (EOF). Set GIT_NAME/GIT_EMAIL env vars or run in an interactive terminal."
@@ -303,10 +287,9 @@ maybe_change_shell() {
         return 0
     fi
 
-    # Non-interactive runs can't prompt; print the exact command to run.
-    if [[ "$NON_INTERACTIVE" == "true" ]]; then
-        log_warn "Non-interactive mode: skipping default-shell change."
-        log_warn "To make zsh your default login shell, run:"
+    # Non-interactive runs (no tty) can't prompt; print the exact command to run.
+    if [[ ! -t 0 ]]; then
+        log_warn "Skipping default-shell change (non-interactive). To make zsh your default login shell, run:"
         log_warn "  sudo chsh -s $zsh_path $USER"
         log_warn "Then log out and back in."
         return 0
@@ -358,7 +341,7 @@ main() {
     log_info "Starting dotfiles installation..."
 
     # Refuse to run interactively when stdin isn't a terminal (curl|bash).
-    require_interactive_stdin
+    note_if_piped
 
     # Install prerequisites
     install_prerequisites
