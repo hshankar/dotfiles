@@ -58,9 +58,6 @@ export NON_INTERACTIVE="true"
 export GIT_NAME="Your Name"
 export GIT_EMAIL="your@email.com"
 
-# For Linux: specify sudo availability
-export SUDO="true"   # or "false" for no sudo
-
 # Run installation
 curl -fsSL https://raw.githubusercontent.com/hshankar/dotfiles/main/install.sh | bash
 ```
@@ -70,11 +67,15 @@ curl -fsSL https://raw.githubusercontent.com/hshankar/dotfiles/main/install.sh |
 - `NON_INTERACTIVE` - "true" to skip all prompts
 - `GIT_NAME` - (optional) Your full name for Git config
 - `GIT_EMAIL` - (optional) Your email for Git config
-- `SUDO` - "true" or "false" for Linux sudo availability
 
 Git identity is optional: if not provided (and non-interactive), the shared git
 config is still installed and a reminder is printed. Set it later with
 `git config --global user.name` / `user.email`. (`GITHUB_USER` is no longer used.)
+
+On Linux, sudo is auto-detected: if passwordless sudo is available (or stdin is
+a terminal where `sudo` can prompt for a password), the full installation runs
+(including `apt`/`dnf`/`yum` package installs); otherwise a no-sudo path
+(manual symlinks, no package installs) is used. There is no `SUDO` flag.
 
 ### Multi-user hosts (non-root user after a root install)
 
@@ -82,18 +83,19 @@ The install is per-user: it clones to `~/.dotfiles` and links into `~/`.
 If an administrator ran the install as root, the prerequisites (zsh, stow,
 git, curl) are installed system-wide, but each non-root user still needs to
 run the installer as themselves to get their own shell config. Because the
-prerequisites are already present, a non-root user can run with `SUDO=false`
-(no sudo needed):
+prerequisites are already present, a non-root user can run without any sudo
+(sudo is auto-detected; without it, the no-sudo install path is used):
 
 ```bash
-export NON_INTERACTIVE=true SUDO=false \
+export NON_INTERACTIVE=true \
        GIT_NAME="Your Name" GIT_EMAIL="your@email.com"
 curl -fsSL https://raw.githubusercontent.com/hshankar/dotfiles/main/install.sh | bash
 ```
 
 > The variables must be `export`ed (or placed before `bash`, not `curl`) so the
 > `bash` running the script inherits them — `VAR=val curl ... | bash` sets them
-> only for `curl`, which ignores them.
+> only for `curl`, which ignores them. On Linux, sudo is auto-detected; a
+> non-root user without sudo automatically gets the no-sudo install path.
 
 The installer detects the already-present tools and skips the package-manager
 step entirely. To set that user's default login shell (which requires sudo or

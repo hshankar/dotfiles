@@ -119,8 +119,9 @@ install_prerequisites() {
 # If all required tools are already present (e.g. root installed them
 # system-wide on a shared host), skip the package-manager step entirely so a
 # non-root user can run the installer without sudo. If tools are missing and
-# SUDO=false, fail clearly with the list of missing packages rather than
-# attempting a sudo prompt the user can't satisfy.
+# sudo is not usable (probed via `sudo -n true`), fail clearly with the list
+# of missing packages rather than attempting a sudo prompt the user can't
+# satisfy.
 install_linux_prerequisites() {
     local required=(git curl zsh stow)
     local missing=()
@@ -133,9 +134,9 @@ install_linux_prerequisites() {
         return 0
     fi
 
-    if [[ "$SUDO" == "false" ]]; then
+    if ! sudo -n true 2>/dev/null; then
         log_error "Missing required tools: ${missing[*]}"
-        log_error "SUDO=false so packages cannot be installed. Ask an administrator to install them system-wide:"
+        log_error "No passwordless sudo available, so packages cannot be installed. Ask an administrator to install them system-wide:"
         log_error "  apt:     sudo apt-get install -y ${missing[*]}"
         log_error "  dnf/yum: sudo dnf install -y ${missing[*]} (enable epel-release first for stow on RHEL/CentOS)"
         exit 1
@@ -371,28 +372,19 @@ main() {
     # Run the main installation
     local os=$(detect_os)
     if [[ "$os" == "linux" ]]; then
-        # Check for SUDO environment variable or prompt
-        if [[ -n "$SUDO" ]]; then
-            has_sudo="$SUDO"
-            log_info "Using SUDO environment variable: $SUDO"
-        elif [[ "$NON_INTERACTIVE" == "true" ]]; then
-            # Default to no sudo in non-interactive mode for safety
-            has_sudo="false"
-            log_info "Non-interactive mode: defaulting to no-sudo installation"
-        else
-            echo -n "Do you have sudo privileges? (y/n): "
-            if ! read -r has_sudo; then
-                log_error "No input received (EOF). Set SUDO=true|false or run in an interactive terminal."
-                exit 1
-            fi
-        fi
-        
-        if [[ "$has_sudo" =~ ^[FfNn]|false$ ]]; then
-            log_info "Running Linux installation without sudo..."
-            make linux-no-sudo || { log_error "Linux installation (no-sudo) failed"; exit 1; }
-        else
-            log_info "Running full Linux installation..."
+        # Choose the install path from actual sudo capability rather than a
+        # user-declared flag. Passwordless sudo (sudo -n true) or an
+        # interactive terminal (where `make linux`'s `sudo -v` can prompt for
+        # a password) -> full install. Otherwise -> no-sudo (manual symlinks).
+        if sudo -n true 2>/dev/null; then
+            log_info "Passwordless sudo available; running full Linux installation"
             make linux || { log_error "Linux installation failed"; exit 1; }
+        elif [[ -t 0 ]]; then
+            log_info "Running full Linux installation (sudo may prompt for a password)"
+            make linux || { log_error "Linux installation failed"; exit 1; }
+        else
+            log_info "No passwordless sudo and non-interactive; running no-sudo installation"
+            make linux-no-sudo || { log_error "Linux installation (no-sudo) failed"; exit 1; }
         fi
     else
         log_info "Running dotfiles installation..."
